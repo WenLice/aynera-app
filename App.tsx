@@ -23,7 +23,11 @@ import { RootNavigator } from "./src/navigation/RootNavigator";
 import { colors } from "./src/theme";
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
-Appearance.setColorScheme("light");
+// react-native-web does not implement setColorScheme; calling it there throws at
+// startup and leaves the web build on a blank page.
+if (typeof Appearance.setColorScheme === "function") {
+  Appearance.setColorScheme("light");
+}
 
 export default function App() {
   const [fontsLoaded, fontError] = useFonts({
