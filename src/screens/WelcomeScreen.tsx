@@ -1,11 +1,13 @@
 import { useCallback, useEffect, useRef } from "react";
-import { Animated, Image, StyleSheet, Text, View } from "react-native";
+import { Animated, Image, Linking, StyleSheet, Text, View } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { AppText } from "../components/AppText";
 import { Button } from "../components/Button";
+import { LINKS } from "../config/aynera";
+import { launchCitiesLine, useLaunchCities } from "../data/cities";
 import { WELCOME_HERO } from "../data/vibeMoments";
 import {
   brand,
@@ -22,10 +24,18 @@ import type { RootStackParamList } from "../navigation/types";
 
 type Props = NativeStackScreenProps<RootStackParamList, "Welcome">;
 
+/** Opens an external page; the buttons here are links, not in-app flows. */
+function openLink(url: string) {
+  Linking.openURL(url).catch(() => {
+    /* nothing sensible to do on a blocked URL scheme */
+  });
+}
+
 /** Landing — photo first, then a calm invitation. */
-export function WelcomeScreen({ navigation }: Props) {
+export function WelcomeScreen(_props: Props) {
   const reduced = useReduceMotion();
   const rise = useRef(new Animated.Value(0)).current;
+  const cities = useLaunchCities();
 
   useEffect(() => {
     Animated.timing(rise, {
@@ -84,20 +94,20 @@ export function WelcomeScreen({ navigation }: Props) {
           </AppText>
           <Button
             label="Join the founding circle"
-            onPress={() => navigation.navigate("ProfileSetup")}
+            onPress={() => openLink(LINKS.join)}
           />
           <Button
             label="See a real introduction first"
             variant="secondary"
-            onPress={() => navigation.navigate("Sample")}
+            onPress={() => openLink(LINKS.sampleIntroduction)}
           />
           <Button
             label="I already applied"
             variant="ghost"
-            onPress={() => navigation.navigate("PendingReview")}
+            onPress={() => openLink(LINKS.alreadyApplied)}
           />
           <AppText variant="meta" tone="muted" center>
-            Bangalore first .. Delhi and Mumbai next
+            {launchCitiesLine(cities)}
           </AppText>
         </Animated.View>
       </SafeAreaView>

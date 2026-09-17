@@ -26,3 +26,21 @@ export const FLAGS = {
   /** Contact hashing / hide-by-number is not live yet. UI only. */
   hidePeopleIKnow: false,
 } as const;
+
+/**
+ * Backend base URL. `EXPO_PUBLIC_*` variables are inlined by Expo at build time,
+ * so the deployed web build and EAS builds can point at a different API than
+ * local development without a code change.
+ */
+export const API_BASE_URL = (
+  process.env.EXPO_PUBLIC_AYNERA_API_BASE_URL?.trim() || "http://localhost:5057"
+).replace(/\/+$/, "");
+
+/** Where the Welcome buttons send people. Overridable per build the same way. */
+export const LINKS = {
+  join: process.env.EXPO_PUBLIC_LINK_JOIN?.trim() || "https://aynera.com/early-access",
+  sampleIntroduction:
+    process.env.EXPO_PUBLIC_LINK_SAMPLE?.trim() || "https://aynera.com/how-it-works",
+  alreadyApplied:
+    process.env.EXPO_PUBLIC_LINK_APPLIED?.trim() || "https://aynera.com/early-access",
+} as const;

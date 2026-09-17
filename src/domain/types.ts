@@ -5,7 +5,8 @@ export type RelationshipPace =
   | "STEADY"
   | "READY_WHEN_RIGHT";
 
-export type LaunchCity = "Delhi NCR" | "Bangalore" | "Mumbai";
+/** Catalog city name as returned by the API (e.g. "Bangalore"); no longer a fixed union. */
+export type LaunchCity = string;
 
 export type CityStatus = "founding" | "waitlist";
 

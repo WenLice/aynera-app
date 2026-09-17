@@ -1,3 +1,4 @@
+import type { LaunchCity } from "../domain/types";
 import { colors } from "../theme";
 
 export type Vibe = readonly [string, string];
@@ -42,7 +43,7 @@ export type PersonProfile = {
   /** Real first name — used after a mutual match. Falls back to name. */
   realName?: string;
   age: number;
-  city: "Delhi NCR" | "Bangalore" | "Mumbai" | "";
+  city: LaunchCity | "";
   area?: string;
   /** What they do — the most-read line after the name. */
   work: string;
