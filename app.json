@@ -1,0 +1,51 @@
+{
+  "expo": {
+    "name": "Aynera",
+    "slug": "aynera",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#2F1530"
+    },
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.aynera.app"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#2F1530",
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundImage": "./assets/android-icon-background.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      },
+      "package": "com.aynera.app",
+      "predictiveBackGestureEnabled": false,
+      "softwareKeyboardLayoutMode": "resize"
+    },
+    "web": {
+      "favicon": "./assets/favicon.png",
+      "output": "single",
+      "bundler": "metro"
+    },
+    "plugins": [
+      "expo-video",
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Aynera uses your camera for a private face check so we know you're really you."
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Aynera uses your photos so you can choose the ones that introduce you.",
+          "cameraPermission": "Aynera uses your camera for a private liveness check and if you want to take a new photo."
+        }
+      ]
+    ]
+  }
+}
