@@ -3,7 +3,7 @@ import type { EditTarget } from "../components/ProfileStory";
 export type RootStackParamList = {
   Splash: undefined;
   Welcome: undefined;
-  Sample: undefined;
+  Login: undefined;
   ProfileSetup: { startAt?: EditTarget } | undefined;
   Premiere: undefined;
   PendingReview: undefined;

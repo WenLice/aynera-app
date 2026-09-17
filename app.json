@@ -45,7 +45,8 @@
           "photosPermission": "Aynera uses your photos so you can choose the ones that introduce you.",
           "cameraPermission": "Aynera uses your camera for a private liveness check and if you want to take a new photo."
         }
-      ]
+      ],
+      "expo-secure-store"
     ]
   }
 }

@@ -7,13 +7,13 @@ import {
   ProfileTabIcon,
   ThreadsTabIcon,
 } from "../components/TabIcons";
+import { LoginScreen } from "../screens/LoginScreen";
 import { MatchMomentScreen } from "../screens/MatchMomentScreen";
 import { MeetScreen } from "../screens/MeetScreen";
 import { PendingReviewScreen } from "../screens/PendingReviewScreen";
 import { PremiereScreen } from "../screens/PremiereScreen";
 import { ProfileScreen } from "../screens/ProfileScreen";
 import { ProfileSetupScreen } from "../screens/ProfileSetupScreen";
-import { SampleScreen } from "../screens/SampleScreen";
 import { SettingsScreen } from "../screens/SettingsScreen";
 import { SplashScreen } from "../screens/SplashScreen";
 import { ThreadScreen } from "../screens/ThreadScreen";
@@ -113,9 +113,9 @@ export function RootNavigator() {
         <Stack.Screen name="Splash" component={SplashScreen} />
         <Stack.Screen name="Welcome" component={WelcomeScreen} />
         <Stack.Screen
-          name="Sample"
-          component={SampleScreen}
-          options={{ animation: "slide_from_bottom" }}
+          name="Login"
+          component={LoginScreen}
+          options={{ animation: "slide_from_right" }}
         />
         <Stack.Screen name="ProfileSetup" component={ProfileSetupScreen} />
         <Stack.Screen name="Premiere" component={PremiereScreen} />

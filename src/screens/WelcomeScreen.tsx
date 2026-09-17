@@ -1,12 +1,11 @@
 import { useCallback, useEffect, useRef } from "react";
-import { Animated, Image, Linking, StyleSheet, Text, View } from "react-native";
+import { Animated, Image, StyleSheet, Text, View } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { AppText } from "../components/AppText";
 import { Button } from "../components/Button";
-import { LINKS } from "../config/aynera";
 import { launchCitiesLine, useLaunchCities } from "../data/cities";
 import { WELCOME_HERO } from "../data/vibeMoments";
 import {
@@ -24,15 +23,8 @@ import type { RootStackParamList } from "../navigation/types";
 
 type Props = NativeStackScreenProps<RootStackParamList, "Welcome">;
 
-/** Opens an external page; the buttons here are links, not in-app flows. */
-function openLink(url: string) {
-  Linking.openURL(url).catch(() => {
-    /* nothing sensible to do on a blocked URL scheme */
-  });
-}
-
 /** Landing — photo first, then a calm invitation. */
-export function WelcomeScreen(_props: Props) {
+export function WelcomeScreen({ navigation }: Props) {
   const reduced = useReduceMotion();
   const rise = useRef(new Animated.Value(0)).current;
   const cities = useLaunchCities();
@@ -94,17 +86,12 @@ export function WelcomeScreen(_props: Props) {
           </AppText>
           <Button
             label="Join the founding circle"
-            onPress={() => openLink(LINKS.join)}
-          />
-          <Button
-            label="See a real introduction first"
-            variant="secondary"
-            onPress={() => openLink(LINKS.sampleIntroduction)}
+            onPress={() => navigation.navigate("ProfileSetup")}
           />
           <Button
             label="I already applied"
             variant="ghost"
-            onPress={() => openLink(LINKS.alreadyApplied)}
+            onPress={() => navigation.navigate("Login")}
           />
           <AppText variant="meta" tone="muted" center>
             {launchCitiesLine(cities)}

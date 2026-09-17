@@ -16,3 +16,80 @@ export type EarlyAccessCity = {
   sortOrder: number;
   isActive: boolean;
 };
+
+/** `POST /early-access/register` body. */
+export type JoinEarlyAccessRequest = {
+  fullName: string;
+  email: string;
+  phone: string;
+  city: string;
+  interest: "Aynera" | "Aynera Professionals";
+  intent: "Fluid" | "Intent";
+  meetPreference: "Duos" | "Squads" | "Both";
+  isAdult: boolean;
+  marketingConsent: boolean;
+};
+
+/** `POST /early-access/register` result. `created` is false when the email was already on the list. */
+export type EarlyAccessSignup = {
+  id: string;
+  email: string;
+  city: string;
+  interest: string;
+  created: boolean;
+};
+
+export type MemberProfile = {
+  firstName: string;
+  lastName: string;
+  gender: string;
+  dateOfBirth: string;
+  city: string;
+  religion: string | null;
+  cityId: string;
+};
+
+export type AuthAccount = {
+  id: string;
+  phone: string | null;
+  phoneConfirmed: boolean;
+  email: string | null;
+  emailConfirmed: boolean;
+  accountKind: "Member" | "Admin";
+  isActive: boolean;
+  isDeleted: boolean;
+  isSuperAdmin: boolean;
+  isRestricted: boolean;
+  roles: string[];
+  profile: MemberProfile | null;
+};
+
+export type TokenPayload = {
+  accessToken: string;
+  refreshToken: string;
+  tokenType: string;
+  expiresInSeconds: number;
+  account: AuthAccount;
+};
+
+/** `POST /auth/login` result — OTP was sent; `retryAfterSeconds` is set when rate limited. */
+export type OtpRequested = {
+  expiresInSeconds: number;
+  retryAfterSeconds: number | null;
+};
+
+export type AdmissionState = "Draft" | "Submitted" | "InReview" | "Approved" | "Rejected";
+
+export type MemberAdmission = {
+  userId: string;
+  state: AdmissionState;
+  submittedAtUtc: string | null;
+  decidedAtUtc: string | null;
+  decisionReason: string | null;
+  reviewNote: string | null;
+  eligibility: {
+    isEligible: boolean;
+    admissionState: AdmissionState;
+    unmetRequirements: string[];
+  };
+};

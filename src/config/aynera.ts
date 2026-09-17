@@ -35,12 +35,3 @@ export const FLAGS = {
 export const API_BASE_URL = (
   process.env.EXPO_PUBLIC_AYNERA_API_BASE_URL?.trim() || "http://localhost:5057"
 ).replace(/\/+$/, "");
-
-/** Where the Welcome buttons send people. Overridable per build the same way. */
-export const LINKS = {
-  join: process.env.EXPO_PUBLIC_LINK_JOIN?.trim() || "https://aynera.com/early-access",
-  sampleIntroduction:
-    process.env.EXPO_PUBLIC_LINK_SAMPLE?.trim() || "https://aynera.com/how-it-works",
-  alreadyApplied:
-    process.env.EXPO_PUBLIC_LINK_APPLIED?.trim() || "https://aynera.com/early-access",
-} as const;

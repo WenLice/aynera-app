@@ -3,6 +3,7 @@ import { Animated, Pressable, StyleSheet, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
+import { resolveStartRoute, type StartRoute } from "../auth/bootstrap";
 import { AnimatedLogoMark } from "../components/AnimatedLogoMark";
 import { AppText } from "../components/AppText";
 import { Atmosphere } from "../components/Atmosphere";
@@ -19,10 +20,16 @@ export function SplashScreen({ navigation }: Props) {
   const [showHint, setShowHint] = useState(false);
   const hint = useRef(new Animated.Value(0)).current;
 
+  // Resolved while the logo animates: a stored session skips Welcome entirely.
+  const start = useRef<Promise<StartRoute>>(resolveStartRoute());
+
   const goWelcome = useCallback(() => {
     if (moved.current) return;
     moved.current = true;
-    navigation.replace("Welcome");
+    void start.current.then((route) => {
+      if (route.name === "Waitlist") navigation.replace("Waitlist", route.params);
+      else navigation.replace(route.name);
+    });
   }, [navigation]);
 
   // The hint only earns its place if the animation is still running — it used
