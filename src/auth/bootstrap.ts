@@ -8,7 +8,7 @@ import { clearSession, loadSession } from "./session";
 export type StartRoute =
   | { name: "Welcome" }
   | { name: "Main" }
-  | { name: "PendingReview" }
+  | { name: "PendingReview"; params: RootStackParamList["PendingReview"] }
   | { name: "ProfileSetup" }
   | { name: "Waitlist"; params: RootStackParamList["Waitlist"] };
 
@@ -26,7 +26,10 @@ export function routeFor(account: AuthAccount, admission: MemberAdmission | null
     case "Submitted":
     case "InReview":
     case "Rejected":
-      return { name: "PendingReview" };
+      return {
+        name: "PendingReview",
+        params: { state: admission.state, reason: admission.decisionReason },
+      };
     default:
       return { name: "ProfileSetup" };
   }

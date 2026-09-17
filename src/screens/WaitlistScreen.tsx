@@ -29,13 +29,8 @@ export function WaitlistScreen({ navigation, route }: Props) {
         </View>
         <View style={styles.actions}>
           <Button
-            label="Look around while you wait"
-            onPress={() => navigation.replace("Main")}
-          />
-          <Button
-            label="Back"
-            variant="ghost"
-            onPress={() => navigation.goBack()}
+            label="Back to welcome"
+            onPress={() => navigation.reset({ index: 0, routes: [{ name: "Welcome" }] })}
           />
         </View>
       </SafeAreaView>

@@ -1,30 +1,97 @@
-import { useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Animated, Image, StyleSheet, View } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
+import { getMyAdmission } from "../api/members";
+import type { AdmissionState } from "../api/types";
+import { getSession } from "../auth/session";
+import { signOut } from "../auth/signOut";
 import { AppText } from "../components/AppText";
 import { Button } from "../components/Button";
+import { launchCitiesLine, useLaunchCities } from "../data/cities";
 import { calm, colors, fonts, leading, motion, radius, spacing, typography } from "../theme";
 import { useReduceMotion } from "../utils/useReduceMotion";
 import type { RootStackParamList } from "../navigation/types";
 
 type Props = NativeStackScreenProps<RootStackParamList, "PendingReview">;
 
-const PROMISES = [
-  "Bangalore first .. Delhi and Mumbai next",
-  "Curated Duos and Squads",
-  "You'll hear when you're in",
-];
-
 /** Warm photo stage — not a flat plum wash. */
 const REVIEW_HERO =
   "https://images.unsplash.com/photo-1516589178581-6cd7833ae3b2?auto=format&fit=crop&w=1600&q=80";
 
-export function PendingReviewScreen({ navigation }: Props) {
+const COPY: Record<
+  "review" | "rejected" | "draft",
+  { kicker: string; title: string; body: string }
+> = {
+  review: {
+    kicker: "Under review",
+    title: "We're reading you carefully.",
+    body:
+      "A human checks authenticity and intent before you appear in Duos — so introductions stay calm and curated.",
+  },
+  rejected: {
+    kicker: "Not this time",
+    title: "We couldn't approve your profile yet.",
+    body: "You can update your introduction and send it for another read.",
+  },
+  draft: {
+    kicker: "Almost there",
+    title: "Your introduction isn't finished.",
+    body: "Pick up where you left off and send it for a human read.",
+  },
+};
+
+function phaseFor(state: AdmissionState | null) {
+  if (state === "Rejected") return "rejected";
+  if (state === "Draft") return "draft";
+  return "review";
+}
+
+/**
+ * The waiting room. Only an approved admission opens the app — "Check again"
+ * re-reads the state, everything else leads back out.
+ */
+export function PendingReviewScreen({ navigation, route }: Props) {
   const reduced = useReduceMotion();
   const rise = useRef(new Animated.Value(0)).current;
+  const cities = useLaunchCities();
+  // Splash and Login pass the admission they just fetched; only "Check again"
+  // hits the API after that.
+  const seeded = route.params?.state !== undefined;
+  const [state, setState] = useState<AdmissionState | null>(route.params?.state ?? null);
+  const [reason, setReason] = useState<string | null>(route.params?.reason ?? null);
+  const [checking, setChecking] = useState(false);
+  const [note, setNote] = useState<string | null>(null);
+
+  const check = useCallback(async () => {
+    if (!getSession()) return;
+    setChecking(true);
+    setNote(null);
+    try {
+      const admission = await getMyAdmission();
+      setState(admission.state);
+      setReason(admission.decisionReason);
+      if (admission.state === "Approved") {
+        navigation.reset({ index: 0, routes: [{ name: "Main" }] });
+        return;
+      }
+      if (admission.state === "Draft") {
+        setNote(null);
+      } else {
+        setNote("Still under review — we'll let you know the moment it changes.");
+      }
+    } catch {
+      setNote("We couldn't check right now. Try again in a moment.");
+    } finally {
+      setChecking(false);
+    }
+  }, [navigation]);
+
+  useEffect(() => {
+    if (!seeded) void check();
+  }, [seeded, check]);
 
   useEffect(() => {
     Animated.timing(rise, {
@@ -34,6 +101,19 @@ export function PendingReviewScreen({ navigation }: Props) {
       useNativeDriver: true,
     }).start();
   }, [rise, reduced]);
+
+  const phase = phaseFor(state);
+  const copy = COPY[phase];
+  const promises = [
+    launchCitiesLine(cities),
+    "Curated Duos and Squads",
+    "You'll hear when you're in",
+  ];
+
+  async function leave() {
+    await signOut();
+    navigation.reset({ index: 0, routes: [{ name: "Welcome" }] });
+  }
 
   return (
     <View style={styles.root}>
@@ -69,10 +149,10 @@ export function PendingReviewScreen({ navigation }: Props) {
         >
           <AppText style={styles.brand}>Aynera</AppText>
           <AppText variant="kicker" tone="rose" style={styles.kicker}>
-            Under review
+            {copy.kicker}
           </AppText>
           <AppText variant="title" tone="inverse" style={styles.title}>
-            We're reading you carefully.
+            {copy.title}
           </AppText>
         </Animated.View>
 
@@ -93,31 +173,48 @@ export function PendingReviewScreen({ navigation }: Props) {
           ]}
         >
           <AppText variant="body" tone="soft" style={styles.copy}>
-            A human checks authenticity and intent before you appear in Duos —
-            so introductions stay calm and curated.
+            {copy.body}
           </AppText>
 
-          <View style={styles.list}>
-            {PROMISES.map((line) => (
-              <View key={line} style={styles.row}>
-                <View style={styles.dot} />
-                <AppText variant="body" tone="ink" style={styles.rowText}>
-                  {line}
-                </AppText>
-              </View>
-            ))}
-          </View>
+          {phase === "rejected" && reason ? (
+            <AppText variant="meta" tone="rose" style={styles.copy}>
+              {reason}
+            </AppText>
+          ) : null}
+
+          {phase === "review" ? (
+            <View style={styles.list}>
+              {promises.map((line) => (
+                <View key={line} style={styles.row}>
+                  <View style={styles.dot} />
+                  <AppText variant="body" tone="ink" style={styles.rowText}>
+                    {line}
+                  </AppText>
+                </View>
+              ))}
+            </View>
+          ) : null}
+
+          {note ? (
+            <AppText variant="meta" tone="muted" center>
+              {note}
+            </AppText>
+          ) : null}
 
           <View style={styles.actions}>
-            <Button
-              label="Look around while you wait"
-              onPress={() => navigation.replace("Main")}
-            />
-            <Button
-              label="Back to welcome"
-              variant="ghost"
-              onPress={() => navigation.replace("Splash")}
-            />
+            {phase === "review" ? (
+              <Button
+                label={checking ? "Checking…" : "Check again"}
+                loading={checking}
+                onPress={() => void check()}
+              />
+            ) : (
+              <Button
+                label={phase === "rejected" ? "Update and resubmit" : "Continue my introduction"}
+                onPress={() => navigation.replace("ProfileSetup")}
+              />
+            )}
+            <Button label="Back to welcome" variant="ghost" onPress={() => void leave()} />
           </View>
         </Animated.View>
       </SafeAreaView>

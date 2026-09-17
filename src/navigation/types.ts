@@ -1,3 +1,4 @@
+import type { AdmissionState } from "../api/types";
 import type { EditTarget } from "../components/ProfileStory";
 
 export type RootStackParamList = {
@@ -6,7 +7,8 @@ export type RootStackParamList = {
   Login: undefined;
   ProfileSetup: { startAt?: EditTarget } | undefined;
   Premiere: undefined;
-  PendingReview: undefined;
+  /** Seeded with the admission the caller already fetched, so the page doesn't refetch on mount. */
+  PendingReview: { state?: AdmissionState; reason?: string | null } | undefined;
   Waitlist: { city: string };
   Main: undefined;
   Thread: { threadId: string };

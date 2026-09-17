@@ -20,17 +20,20 @@ export function SplashScreen({ navigation }: Props) {
   const [showHint, setShowHint] = useState(false);
   const hint = useRef(new Animated.Value(0)).current;
 
-  // Resolved while the logo animates: a stored session skips Welcome entirely.
-  const start = useRef<Promise<StartRoute>>(resolveStartRoute());
+  // Resolved once while the logo animates: a stored session skips Welcome
+  // entirely. Lazy initialiser — a plain `useRef(fn())` would re-run the
+  // bootstrap on every render.
+  const [start] = useState<Promise<StartRoute>>(() => resolveStartRoute());
 
   const goWelcome = useCallback(() => {
     if (moved.current) return;
     moved.current = true;
-    void start.current.then((route) => {
+    void start.then((route) => {
       if (route.name === "Waitlist") navigation.replace("Waitlist", route.params);
+      else if (route.name === "PendingReview") navigation.replace("PendingReview", route.params);
       else navigation.replace(route.name);
     });
-  }, [navigation]);
+  }, [navigation, start]);
 
   // The hint only earns its place if the animation is still running — it used
   // to sit there from the first frame, competing with the logo.

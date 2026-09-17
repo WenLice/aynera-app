@@ -12,6 +12,15 @@ import {
 import { LinearGradient } from "expo-linear-gradient";
 import * as ImagePicker from "expo-image-picker";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
+import { ApiError } from "../api/client";
+import { getMe } from "../api/members";
+import {
+  startEmailVerification,
+  startPhoneRegistration,
+  verifyEmailCode,
+  verifyPhoneRegistration,
+} from "../api/registration";
+import { getSession, saveSession } from "../auth/session";
 import { AppText } from "../components/AppText";
 import { Button } from "../components/Button";
 import { ChapterShell } from "../components/ChapterShell";
@@ -69,6 +78,36 @@ import {
 } from "../state/profileDraft";
 import { colors, fonts, leading, radius, spacing, typography } from "../theme";
 type Props = NativeStackScreenProps<RootStackParamList, "ProfileSetup">;
+
+/** Backend error codes the access steps can hit, in the app's voice. */
+function accessStepError(error: unknown): string {
+  if (!(error instanceof ApiError)) return "Something went wrong. Please try again.";
+  switch (error.code) {
+    case "user_already_exists":
+      return "This number already has an account. Go back and tap \"I already applied\" to sign in.";
+    case "account_deactivated":
+      return "This number belongs to a deactivated account. Sign in to reactivate it.";
+    case "account_restricted":
+      return "This number can't be used to register. Please contact support.";
+    case "email_already_exists":
+      return "That email is already on another account. Use a different one.";
+    case "otp_rate_limited":
+      return "Too many codes requested. Please wait a few minutes.";
+    case "otp_expired":
+      return "That code has expired. Send a new one.";
+    case "otp_invalid":
+      return "That code isn't right. Check it and try again.";
+    case "otp_locked":
+      return "Too many wrong codes. Send a new one to continue.";
+    case "validation_failed":
+      return error.field("phone") ?? error.field("email") ?? "Please check what you entered.";
+    case "network_error":
+    case "request_timeout":
+      return "We couldn't reach Aynera. Check your connection and try again.";
+    default:
+      return "Something went wrong. Please try again.";
+  }
+}
 
 type StepId =
   | "arrive"
@@ -319,6 +358,10 @@ export function ProfileSetupScreen({ navigation, route }: Props) {
   const [smsCode, setSmsCode] = useState("");
   const [mailCode, setMailCode] = useState("");
   const [resent, setResent] = useState<"" | "sms" | "mail">("");
+  /** A backend call for the current access step is in flight. */
+  const [busy, setBusy] = useState(false);
+  /** Backend refusal for the current access step; cleared on any input change. */
+  const [stepError, setStepError] = useState<string | null>(null);
   const [livenessOpen, setLivenessOpen] = useState(false);
   const scrollRef = useRef<ScrollView>(null);
   const fieldY = useRef<Record<string, number>>({});
@@ -359,6 +402,31 @@ export function ProfileSetupScreen({ navigation, route }: Props) {
       }, Platform.OS === "ios" ? 16 : 40);
     });
     return () => sub.remove();
+  }, []);
+
+  // A signed-in member resuming a Draft account: seed the access steps from the server so the
+  // already-verified phone/email are skipped instead of tripping "already registered".
+  useEffect(() => {
+    if (!getSession()) return;
+    let cancelled = false;
+    void getMe()
+      .then((account) => {
+        if (cancelled) return;
+        setDraft((current) => ({
+          ...current,
+          phone: account.phone ? account.phone.replace(/\D/g, "").slice(-10) : current.phone,
+          phoneVerified: account.phoneConfirmed || current.phoneVerified,
+          email: account.email ?? current.email,
+          emailVerified: account.emailConfirmed || current.emailVerified,
+          name: current.name || account.profile?.firstName || "",
+        }));
+      })
+      .catch(() => {
+        /* offline or expired session — the steps will simply ask again */
+      });
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const editing = !!startAt;
@@ -566,13 +634,91 @@ export function ProfileSetupScreen({ navigation, route }: Props) {
     verified,
   ]);
 
-  const canPrimary = missing === null;
+  const canPrimary = missing === null && !busy;
+
+  /** Runs one backend call for an access step; on success the caller advances. */
+  const callBackend = async (work: () => Promise<void>): Promise<boolean> => {
+    if (busy) return false;
+    setBusy(true);
+    setStepError(null);
+    try {
+      await work();
+      return true;
+    } catch (error) {
+      setStepError(accessStepError(error));
+      return false;
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const advance = () => setIndex((v) => Math.min(v + 1, FLOW.length - 1));
+
+  /** The four access steps talk to the API; everything else is the local draft. */
+  const runAccessStep = async (): Promise<boolean> => {
+    switch (step) {
+      case "phone": {
+        // A verified number with a live session (resumed draft) skips straight past the code.
+        if (draft.phoneVerified && getSession()) {
+          setIndex((v) => Math.min(v + 2, FLOW.length - 1));
+          return false;
+        }
+        const ok = await callBackend(async () => {
+          await startPhoneRegistration(draft.phone);
+        });
+        if (ok) setSmsCode("");
+        return ok;
+      }
+      case "phoneCode": {
+        return callBackend(async () => {
+          const tokens = await verifyPhoneRegistration(draft.phone, smsCode);
+          await saveSession({ accessToken: tokens.accessToken, refreshToken: tokens.refreshToken });
+          patch({ phoneVerified: true });
+        });
+      }
+      case "email": {
+        if (draft.emailVerified && getSession()) {
+          setIndex((v) => Math.min(v + 2, FLOW.length - 1));
+          return false;
+        }
+        const ok = await callBackend(async () => {
+          await startEmailVerification(draft.email.trim());
+        });
+        if (ok) setMailCode("");
+        return ok;
+      }
+      case "emailCode": {
+        return callBackend(async () => {
+          await verifyEmailCode(draft.email.trim(), mailCode);
+          patch({ emailVerified: true });
+        });
+      }
+      default:
+        return true;
+    }
+  };
+
+  const resendCode = async (kind: "sms" | "mail") => {
+    const ok = await callBackend(async () => {
+      if (kind === "sms") await startPhoneRegistration(draft.phone);
+      else await startEmailVerification(draft.email.trim());
+    });
+    if (ok) {
+      setResent(kind);
+      if (kind === "sms") setSmsCode("");
+      else setMailCode("");
+    }
+  };
 
   const goNext = () => {
     dismissSpark();
     setResent("");
-    if (step === "phoneCode") patch({ phoneVerified: true });
-    if (step === "emailCode") patch({ emailVerified: true });
+    if (step === "phone" || step === "phoneCode" || step === "email" || step === "emailCode") {
+      void runAccessStep().then((ok) => {
+        if (ok) advance();
+      });
+      return;
+    }
     if (step === "notifications") patch({ notificationsOn: true });
     if (step === "basics" && draft.heightCm === null)
       patch({ heightCm: HEIGHT_DEFAULT_CM });
@@ -603,6 +749,7 @@ export function ProfileSetupScreen({ navigation, route }: Props) {
   const goBack = () => {
     dismissSpark();
     setResent("");
+    setStepError(null);
     if (tasteSummary) {
       setTasteSummary(false);
       return;
@@ -631,12 +778,12 @@ export function ProfileSetupScreen({ navigation, route }: Props) {
 
   const primaryDisabled = !canPrimary;
 
-  /** Saves whatever exists and leaves. Nothing typed is ever lost. */
+  /** Saves whatever exists and leaves. Nothing typed is ever lost. Only an approved member enters Main. */
   const saveAndClose = () => {
     dismissSpark();
     setProfileDraft(draft);
     setExitOpen(false);
-    navigation.reset({ index: 0, routes: [{ name: "Main" }] });
+    navigation.reset({ index: 0, routes: [{ name: "Welcome" }] });
   };
 
   const momentId = MOMENT_STEPS[step];
@@ -666,9 +813,9 @@ export function ProfileSetupScreen({ navigation, route }: Props) {
       }
       progress={progress}
       tone={meta.tone}
-      primaryLabel={tasteCta}
+      primaryLabel={busy ? "One moment…" : tasteCta}
       primaryDisabled={primaryDisabled}
-      disabledReason={missing ?? undefined}
+      disabledReason={busy ? undefined : (missing ?? undefined)}
       onPrimary={goNext}
       onBack={goBack}
       onExit={editing ? undefined : () => setExitOpen(true)}
@@ -722,6 +869,7 @@ export function ProfileSetupScreen({ navigation, route }: Props) {
                 value={draft.phone}
                 onChangeText={(raw) => {
                   setSmsCode("");
+                  setStepError(null);
                   patch({
                     phone: raw.replace(/\D/g, "").slice(0, 10),
                     phoneVerified: false,
@@ -742,6 +890,11 @@ export function ProfileSetupScreen({ navigation, route }: Props) {
               We'll send a six-digit code to confirm it's yours. No one can find
               you by your number.
             </Text>
+            {stepError ? (
+              <AppText variant="meta" tone="rose" center>
+                {stepError}
+              </AppText>
+            ) : null}
           </View>
         )}
         {step === "phoneCode" && (
@@ -749,11 +902,19 @@ export function ProfileSetupScreen({ navigation, route }: Props) {
             <AppText variant="meta" tone="muted" center>
               Sent to +91 {draft.phone}
             </AppText>
-            <CodeInput value={smsCode} onChange={setSmsCode} autoFocus />
+            <CodeInput
+              value={smsCode}
+              onChange={(next) => {
+                setStepError(null);
+                setSmsCode(next);
+              }}
+              autoFocus
+            />
             <Pressable
               accessibilityRole="button"
               accessibilityLabel="Resend the code"
-              onPress={() => setResent("sms")}
+              disabled={busy}
+              onPress={() => void resendCode("sms")}
               style={styles.resend}
             >
               <Text style={styles.resendText}>
@@ -769,9 +930,13 @@ export function ProfileSetupScreen({ navigation, route }: Props) {
               <Text style={styles.resendMuted}>Wrong number? Change it</Text>
             </Pressable>
             <Text style={styles.helper}>
-              This preview build doesn't send a real SMS — any six digits will
-              take you through.
+              The code is valid for five minutes.
             </Text>
+            {stepError ? (
+              <AppText variant="meta" tone="rose" center>
+                {stepError}
+              </AppText>
+            ) : null}
           </View>
         )}
         {step === "email" && (
@@ -784,6 +949,7 @@ export function ProfileSetupScreen({ navigation, route }: Props) {
               value={draft.email}
               onChangeText={(email) => {
                 setMailCode("");
+                setStepError(null);
                 patch({ email, emailVerified: false });
               }}
               placeholder="you@email.com"
@@ -796,6 +962,11 @@ export function ProfileSetupScreen({ navigation, route }: Props) {
               onFocus={() => revealFocusedField("end")}
             />
             <PrivacyHint text="Never shown on your profile" />
+            {stepError ? (
+              <AppText variant="meta" tone="rose" center>
+                {stepError}
+              </AppText>
+            ) : null}
           </View>
         )}
         {step === "emailCode" && (
@@ -803,11 +974,19 @@ export function ProfileSetupScreen({ navigation, route }: Props) {
             <AppText variant="meta" tone="muted" center>
               Sent to {draft.email}
             </AppText>
-            <CodeInput value={mailCode} onChange={setMailCode} autoFocus />
+            <CodeInput
+              value={mailCode}
+              onChange={(next) => {
+                setStepError(null);
+                setMailCode(next);
+              }}
+              autoFocus
+            />
             <Pressable
               accessibilityRole="button"
               accessibilityLabel="Resend the code"
-              onPress={() => setResent("mail")}
+              disabled={busy}
+              onPress={() => void resendCode("mail")}
               style={styles.resend}
             >
               <Text style={styles.resendText}>
@@ -823,9 +1002,13 @@ export function ProfileSetupScreen({ navigation, route }: Props) {
               <Text style={styles.resendMuted}>Wrong address? Change it</Text>
             </Pressable>
             <Text style={styles.helper}>
-              This preview build doesn't send a real email — any six digits will
-              take you through.
+              The code is valid for five minutes.
             </Text>
+            {stepError ? (
+              <AppText variant="meta" tone="rose" center>
+                {stepError}
+              </AppText>
+            ) : null}
           </View>
         )}
         {step === "basics" && (

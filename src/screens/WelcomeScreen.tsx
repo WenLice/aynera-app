@@ -90,7 +90,7 @@ export function WelcomeScreen({ navigation }: Props) {
           />
           <Button
             label="I already applied"
-            variant="ghost"
+            variant="secondary"
             onPress={() => navigation.navigate("Login")}
           />
           <AppText variant="meta" tone="muted" center>
