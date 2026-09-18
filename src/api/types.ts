@@ -8,6 +8,12 @@ export type ApiResponse<T> = {
   correlationId: string | null;
 };
 
+/**
+ * The API's `Gender` enum, by name. `Other` is its code for third gender / transgender;
+ * `PreferNotToSay` is an explicit decline, deliberately distinct from it.
+ */
+export type Gender = "Male" | "Female" | "Other" | "PreferNotToSay";
+
 /** `GET /early-access/cities/GetAll` — the shared city catalog. */
 export type EarlyAccessCity = {
   id: string;

@@ -1,3 +1,4 @@
+import type { Gender } from "../api/types";
 import type { LaunchCity } from "../domain/types";
 import {
   AGE_DEFAULT_MAX,
@@ -40,13 +41,15 @@ export type OptionalAnswer = {
 
 export type IntroStyle = "initial" | "nickname";
 
-/** Matches the API's Gender enum. Empty until the member answers. */
-export type GenderChoice = "" | "Male" | "Female" | "Other";
+/** The API's Gender enum, plus the empty value the draft starts with. */
+export type GenderChoice = "" | Gender;
 
+/** `Other` is the API's code for third gender / transgender. */
 export const GENDER_OPTIONS: { value: Exclude<GenderChoice, "">; label: string }[] = [
-  { value: "Female", label: "Woman" },
-  { value: "Male", label: "Man" },
-  { value: "Other", label: "Another way" },
+  { value: "Male", label: "Male" },
+  { value: "Female", label: "Female" },
+  { value: "Other", label: "Third Gender / Transgender" },
+  { value: "PreferNotToSay", label: "Prefer not to say" },
 ];
 
 export type ProfileDraft = {

@@ -1,5 +1,5 @@
 import { request } from "./client";
-import type { AuthAccount, OtpRequested, TokenPayload } from "./types";
+import type { AuthAccount, Gender, OtpRequested, TokenPayload } from "./types";
 
 /** Step 1 — SMS code to a number that has no account yet. 409 `user_already_exists` if it does. */
 export function startPhoneRegistration(phone: string): Promise<OtpRequested> {
@@ -34,7 +34,7 @@ export function verifyEmailCode(email: string, code: string): Promise<AuthAccoun
 /** The basic details the API stores. A full replace — anything left out is cleared. */
 export type ProfileBasics = {
   name: string;
-  gender: "Male" | "Female" | "Other";
+  gender: Gender;
   /** ISO date, `YYYY-MM-DD`. */
   dateOfBirth: string;
   city: string;

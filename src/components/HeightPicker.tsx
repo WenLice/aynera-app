@@ -1,3 +1,4 @@
+import { useCallback, useEffect, useRef } from "react";
 import { Pressable, StyleSheet, View } from "react-native";
 import { AppText } from "./AppText";
 import {
@@ -13,22 +14,69 @@ type Props = {
   onChange: (cm: number) => void;
 };
 
-/** Steps in whole centimetres, shown in feet and inches. */
+/** How long a button must be held before it starts repeating, and how fast it then runs. */
+const HOLD_DELAY_MS = 300;
+const REPEAT_MS = 55;
+
+/** Steps in whole centimetres, shown in feet and inches. Tap to nudge, hold to run. */
 export function HeightPicker({ cm, onChange }: Props) {
-  const step = (delta: number) => {
-    const next = Math.min(HEIGHT_MAX_CM, Math.max(HEIGHT_MIN_CM, cm + delta));
-    if (next === cm) return;
-    selectTap();
-    onChange(next);
-  };
+  // A held button reads the latest value through refs, so the timers below can be set up
+  // once per press instead of being torn down by every re-render the change causes.
+  const cmRef = useRef(cm);
+  cmRef.current = cm;
+  const onChangeRef = useRef(onChange);
+  onChangeRef.current = onChange;
+  const delayTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const repeatTimer = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  /** Returns false at either end of the range, so a hold can stop itself. */
+  const bump = useCallback((delta: number) => {
+    const next = Math.min(HEIGHT_MAX_CM, Math.max(HEIGHT_MIN_CM, cmRef.current + delta));
+    if (next === cmRef.current) return false;
+    onChangeRef.current(next);
+    return true;
+  }, []);
+
+  const stop = useCallback(() => {
+    if (delayTimer.current) clearTimeout(delayTimer.current);
+    if (repeatTimer.current) clearInterval(repeatTimer.current);
+    delayTimer.current = null;
+    repeatTimer.current = null;
+  }, []);
+
+  const start = useCallback(
+    (delta: number) => {
+      stop();
+      if (bump(delta)) selectTap();
+      delayTimer.current = setTimeout(() => {
+        // No haptic per repeat — a continuous buzz while holding is not feedback.
+        repeatTimer.current = setInterval(() => {
+          if (!bump(delta)) stop();
+        }, REPEAT_MS);
+      }, HOLD_DELAY_MS);
+    },
+    [bump, stop],
+  );
+
+  useEffect(() => stop, [stop]);
 
   return (
     <View style={styles.wrap}>
-      <Round label="−" accessibilityLabel="Shorter" onPress={() => step(-1)} />
+      <Round
+        label="−"
+        accessibilityLabel="Shorter"
+        onStart={() => start(-1)}
+        onStop={stop}
+      />
       <View style={styles.readout}>
         <AppText style={styles.feet}>{formatHeight(cm)}</AppText>
       </View>
-      <Round label="+" accessibilityLabel="Taller" onPress={() => step(1)} />
+      <Round
+        label="+"
+        accessibilityLabel="Taller"
+        onStart={() => start(1)}
+        onStop={stop}
+      />
     </View>
   );
 }
@@ -36,18 +84,24 @@ export function HeightPicker({ cm, onChange }: Props) {
 function Round({
   label,
   accessibilityLabel,
-  onPress,
+  onStart,
+  onStop,
 }: {
   label: string;
   accessibilityLabel: string;
-  onPress: () => void;
+  onStart: () => void;
+  onStop: () => void;
 }) {
   return (
     <Pressable
       accessibilityRole="button"
       accessibilityLabel={accessibilityLabel}
       hitSlop={10}
-      onPress={onPress}
+      // The first step fires on press-in, so a plain tap still moves exactly one centimetre.
+      onPressIn={onStart}
+      onPressOut={onStop}
+      // On web a pointer that leaves the button never sends press-out.
+      onHoverOut={onStop}
       style={({ pressed }) => [styles.round, pressed && styles.pressed]}
     >
       <AppText style={styles.roundLabel}>{label}</AppText>
