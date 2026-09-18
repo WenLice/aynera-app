@@ -37,7 +37,6 @@ import {
   LOOKING_FOR,
   MAX_CHIPS,
   MIN_CHIPS,
-  PACE_OPTIONS,
   PHOTO_SLOTS,
   PROFILE_PROMPTS,
   RHYTHM,
@@ -657,9 +656,9 @@ export function ProfileSetupScreen({ navigation, route }: Props) {
           ? `${MIN_CHIPS - draft.chips.length} more picks and your vibe starts to have a shape`
           : null;
       case "intent":
-        if (draft.intentOutcome === "") return "Choose what you'd be happy if this became";
-        if (draft.paceId === "") return "Choose how you like things to move";
-        return null;
+        return draft.intentOutcome === ""
+          ? "Choose what you'd be happy if this became"
+          : null;
       case "photos":
         return photoCount < PHOTO_SLOTS
           ? `${PHOTO_SLOTS - photoCount} more photo${PHOTO_SLOTS - photoCount === 1 ? "" : "s"} — five is where a stranger starts to trust a face`
@@ -1460,20 +1459,6 @@ export function ProfileSetupScreen({ navigation, route }: Props) {
               Choose what feels true right now .. you can change this later
             </Text>
             <PrivacyHint kind="eye" text="Shown on your profile" />
-
-            <Text style={styles.fieldLabel}>How do you like things to move?</Text>
-            <View style={styles.paceStack}>
-              {PACE_OPTIONS.map((option) => (
-                <ChoiceCard
-                  key={option.id}
-                  label={option.label}
-                  hint={option.hint}
-                  selected={draft.paceId === option.id}
-                  onPress={() => patch({ paceId: option.id })}
-                />
-              ))}
-            </View>
-            <PrivacyHint kind="eye" text="Shown on your profile" />
           </View>
         )}
         {step === "dealbreaker" && (
@@ -1935,7 +1920,6 @@ function VoicePick({
 }
 
 function Reveal({ draft }: { draft: ProfileDraft }) {
-  const pace = PACE_OPTIONS.find((p) => p.id === draft.paceId)?.label;
   const intent = INTENT_OUTCOMES.find((i) => i.id === draft.intentOutcome)?.label;
   const age = ageFromBirth(draft.birth);
   const hero = draft.photos.find((p) => !!p.uri)?.uri;
@@ -1970,7 +1954,6 @@ function Reveal({ draft }: { draft: ProfileDraft }) {
         </LinearGradient>
         <View style={styles.revealRows}>
           <Text style={styles.revealRow}>{intent}</Text>
-          <Text style={styles.revealRow}>{pace}</Text>
           <Text style={styles.revealRow}>{draft.city}</Text>
           {shown.length ? (
             <Text style={styles.revealRow}>
@@ -2058,10 +2041,6 @@ const styles = StyleSheet.create({
   },
   stack: {
     gap: spacing.sm,
-  },
-  paceStack: {
-    gap: spacing.md,
-    paddingTop: spacing.xs,
   },
   storyBlock: {
     gap: spacing.md,

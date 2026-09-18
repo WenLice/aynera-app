@@ -36,7 +36,6 @@ export function profileCompletion(draft: ProfileDraft): ProfileCompletion {
     draft.city !== "",
     draft.lookingFor !== "",
     draft.intentOutcome !== "",
-    draft.paceId !== "",
     draft.ageMin > 0 && draft.ageMax > draft.ageMin,
     draft.chips.length >= MIN_CHIPS,
     photos >= PHOTO_SLOTS,
