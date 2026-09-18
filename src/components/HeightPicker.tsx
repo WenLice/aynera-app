@@ -204,7 +204,7 @@ const styles = StyleSheet.create({
   readout: {
     minWidth: 140,
     alignItems: "center",
-    gap: 2,
+    gap: spacing.sm,
   },
   primary: {
     fontFamily: fonts.bodySemi,
