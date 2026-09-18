@@ -1,5 +1,12 @@
 import { request } from "./client";
-import type { AuthAccount, Gender, OtpRequested, TokenPayload } from "./types";
+import type {
+  AuthAccount,
+  Gender,
+  IntentOutcomeCode,
+  InterestedIn,
+  OtpRequested,
+  TokenPayload,
+} from "./types";
 
 /** Step 1 — SMS code to a number that has no account yet. 409 `user_already_exists` if it does. */
 export function startPhoneRegistration(phone: string): Promise<OtpRequested> {
@@ -53,4 +60,32 @@ export type ProfileBasics = {
  */
 export function saveProfile(basics: ProfileBasics): Promise<AuthAccount> {
   return request<AuthAccount>("/members/me/profile", { method: "PUT", body: basics });
+}
+
+/** The member's matching hard filters. Private — never shown on a profile. */
+export type MemberPreferences = {
+  interestedIn: InterestedIn;
+  minAge: number;
+  maxAge: number;
+  ageIsFlexible: boolean;
+  intentOutcome: IntentOutcomeCode;
+  /** Returned, not sent — the API derives it from the outcome. */
+  relationshipTrack?: "Fluid" | "Intent";
+};
+
+/**
+ * Sent once the "looking" and track steps are both answered. Required before an
+ * admission can be submitted.
+ */
+export function savePreferences(
+  preferences: Omit<MemberPreferences, "relationshipTrack">,
+): Promise<MemberPreferences> {
+  return request<MemberPreferences>("/preferences/me", {
+    method: "PUT",
+    body: preferences,
+  });
+}
+
+export function getMyPreferences(): Promise<MemberPreferences | null> {
+  return request<MemberPreferences | null>("/preferences/me");
 }

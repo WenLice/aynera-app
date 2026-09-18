@@ -197,25 +197,25 @@ export const INTENT_OUTCOMES: {
   hint: string;
 }[] = [
   {
-    id: "PLATONIC",
+    id: "Platonic",
     track: "Fluid",
     label: "Platonic",
     hint: "Friendship and networking, clearly labelled.",
   },
   {
-    id: "SPONTANEOUS",
+    id: "Spontaneous",
     track: "Fluid",
     label: "Spontaneous",
     hint: "Meet in the moment, part with grace.",
   },
   {
-    id: "PROSPECT",
+    id: "Prospect",
     track: "Intent",
     label: "Prospect",
     hint: "Dating with the door to more left open.",
   },
   {
-    id: "LEGACY",
+    id: "Legacy",
     track: "Intent",
     label: "Legacy",
     hint: "Partnership meant to outlast the season.",

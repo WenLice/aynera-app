@@ -17,6 +17,7 @@ import { ApiError } from "../api/client";
 import { getMe } from "../api/members";
 import {
   saveProfile,
+  savePreferences,
   startEmailVerification,
   startPhoneRegistration,
   verifyEmailCode,
@@ -783,6 +784,20 @@ export function ProfileSetupScreen({ navigation, route }: Props) {
           });
         });
       }
+      case "intent": {
+        // The last of the two preference steps — "looking" is answered by now, so the
+        // whole §6 filter set goes in one write, the way the profile does at "life".
+        if (draft.lookingFor === "" || draft.intentOutcome === "") return true;
+        return callBackend(async () => {
+          await savePreferences({
+            interestedIn: draft.lookingFor as Exclude<ProfileDraft["lookingFor"], "">,
+            minAge: draft.ageMin,
+            maxAge: draft.ageMax,
+            ageIsFlexible: draft.ageFlexible,
+            intentOutcome: draft.intentOutcome as Exclude<ProfileDraft["intentOutcome"], "">,
+          });
+        });
+      }
       default:
         return true;
     }
@@ -808,7 +823,8 @@ export function ProfileSetupScreen({ navigation, route }: Props) {
       step === "phoneCode" ||
       step === "email" ||
       step === "emailCode" ||
-      step === "life"
+      step === "life" ||
+      step === "intent"
     ) {
       void runAccessStep().then((ok) => {
         if (ok) advance();

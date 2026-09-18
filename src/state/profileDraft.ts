@@ -1,5 +1,10 @@
 import type { Gender } from "../api/types";
-import type { InterestedIn, LaunchCity, RelationshipTrack } from "../domain/types";
+import type {
+  IntentOutcome,
+  InterestedIn,
+  LaunchCity,
+  RelationshipTrack,
+} from "../domain/types";
 import {
   AGE_DEFAULT_MAX,
   AGE_DEFAULT_MIN,
@@ -91,7 +96,8 @@ export type ProfileDraft = {
    */
   relationshipTrack: RelationshipTrack | "";
   /** Outcome of being here — one of the two children of `relationshipTrack`. */
-  intentOutcome: string;
+  /** Id from `INTENT_OUTCOMES`, spelled as the API spells it. */
+  intentOutcome: IntentOutcome | "";
   paceId: string;
   ageMin: number;
   ageMax: number;
