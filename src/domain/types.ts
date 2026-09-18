@@ -1,4 +1,11 @@
-export type IntentOutcome = "OPEN_TO_MEETING" | "RELATIONSHIP" | "LIFE_PARTNER";
+/**
+ * The two tracks the public site and the early-access API already use — the backend
+ * validates this field as exactly "Fluid" or "Intent", so the strings match on purpose.
+ */
+export type RelationshipTrack = "Fluid" | "Intent";
+
+/** The four outcomes offered on aynera.com/track, two under each track. */
+export type IntentOutcome = "PLATONIC" | "SPONTANEOUS" | "PROSPECT" | "LEGACY";
 
 export type RelationshipPace =
   | "SLOW_CLEAR"

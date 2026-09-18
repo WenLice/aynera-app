@@ -82,7 +82,7 @@ export const MOCK_PEOPLE: PersonProfile[] = [
     area: "Indiranagar",
     work: "Product designer",
     lookingFor: "Men",
-    intent: "Ready for a life partner",
+    intent: "Legacy",
     pace: "Slow & clear",
     reason: "Similar pace .. shared love of quieter weekends",
     whyReasons: [
@@ -106,7 +106,7 @@ export const MOCK_PEOPLE: PersonProfile[] = [
     ],
     signature: "I’d rather be early to the gallery than fashionably late anywhere.",
     vitals: [
-      { label: "Intent", value: "Ready for a life partner" },
+      { label: "Intent", value: "Legacy" },
       { label: "Pace", value: "Slow & clear" },
       { label: "Open to", value: "Men" },
       { label: "Height", value: "5' 4\"" },
@@ -187,7 +187,7 @@ export const MOCK_PEOPLE: PersonProfile[] = [
     area: "Koramangala",
     work: "Product manager",
     lookingFor: "Women",
-    intent: "Open to meeting someone",
+    intent: "Spontaneous",
     pace: "Steady",
     reason: "Similar follow-through .. shared love of cooking",
     whyReasons: ["Similar pace", "Shared love of cooking", "Both like live music"],
@@ -207,7 +207,7 @@ export const MOCK_PEOPLE: PersonProfile[] = [
     ],
     signature: "I remember small things and quietly build around them.",
     vitals: [
-      { label: "Intent", value: "Open to meeting someone" },
+      { label: "Intent", value: "Spontaneous" },
       { label: "Pace", value: "Steady" },
       { label: "Open to", value: "Women" },
       { label: "Height", value: "5' 11\"" },
@@ -280,7 +280,7 @@ export const MOCK_PEOPLE: PersonProfile[] = [
     area: "Jayanagar",
     work: "Architect",
     lookingFor: "Both",
-    intent: "Looking for a relationship",
+    intent: "Prospect",
     pace: "Ready when it feels right",
     reason: "Both prefer smaller social settings .. shared love of tea",
     whyReasons: [
@@ -304,7 +304,7 @@ export const MOCK_PEOPLE: PersonProfile[] = [
     ],
     signature: "I design rooms for light and people for calm.",
     vitals: [
-      { label: "Intent", value: "Looking for a relationship" },
+      { label: "Intent", value: "Prospect" },
       { label: "Pace", value: "Ready when it feels right" },
       { label: "Open to", value: "Both" },
       { label: "Height", value: "5' 6\"" },
@@ -377,7 +377,7 @@ export const MOCK_PEOPLE: PersonProfile[] = [
     area: "HSR Layout",
     work: "Engineer",
     lookingFor: "Women",
-    intent: "Looking for a relationship",
+    intent: "Prospect",
     pace: "Steady",
     reason: "Shared love of coffee .. both like long walks",
     whyReasons: ["Shared love of coffee", "Both like long walks"],
@@ -397,7 +397,7 @@ export const MOCK_PEOPLE: PersonProfile[] = [
     ],
     signature: "I show up on time and stay for the hard part.",
     vitals: [
-      { label: "Intent", value: "Looking for a relationship" },
+      { label: "Intent", value: "Prospect" },
       { label: "Pace", value: "Steady" },
       { label: "Open to", value: "Women" },
       { label: "Height", value: "6' 0\"" },

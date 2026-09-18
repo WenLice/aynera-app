@@ -157,17 +157,47 @@ export const CHIP_GROUPS = [
   },
 ] as const;
 
-import type { IntentOutcome, RelationshipPace } from "../domain/types";
+import type {
+  IntentOutcome,
+  RelationshipPace,
+  RelationshipTrack,
+} from "../domain/types";
 
 /** What this could become — not values, not pace. */
+/** Mirrors the four choices on aynera.com/track, grouped under their two tracks. */
 export const INTENT_OUTCOMES: {
   id: IntentOutcome;
+  track: RelationshipTrack;
   label: string;
+  hint: string;
 }[] = [
-  { id: "OPEN_TO_MEETING", label: "Open to meeting someone" },
-  { id: "RELATIONSHIP", label: "Looking for a relationship" },
-  { id: "LIFE_PARTNER", label: "Ready for a life partner" },
+  {
+    id: "PLATONIC",
+    track: "Fluid",
+    label: "Platonic",
+    hint: "Friendship and networking, clearly labelled.",
+  },
+  {
+    id: "SPONTANEOUS",
+    track: "Fluid",
+    label: "Spontaneous",
+    hint: "Meet in the moment, part with grace.",
+  },
+  {
+    id: "PROSPECT",
+    track: "Intent",
+    label: "Prospect",
+    hint: "Dating with the door to more left open.",
+  },
+  {
+    id: "LEGACY",
+    track: "Intent",
+    label: "Legacy",
+    hint: "Partnership meant to outlast the season.",
+  },
 ];
+
+export const RELATIONSHIP_TRACKS: RelationshipTrack[] = ["Fluid", "Intent"];
 
 export const PACE_OPTIONS: {
   id: RelationshipPace;

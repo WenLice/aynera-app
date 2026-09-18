@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Image,
   Keyboard,
@@ -33,6 +33,7 @@ import type { EditTarget } from "../components/ProfileStory";
 import {
   CHIP_GROUPS,
   INTENT_OUTCOMES,
+  RELATIONSHIP_TRACKS,
   LOOKING_FOR,
   MAX_CHIPS,
   MIN_CHIPS,
@@ -1437,16 +1438,24 @@ export function ProfileSetupScreen({ navigation, route }: Props) {
         )}
         {step === "intent" && (
           <View style={styles.block}>
-            <View style={styles.stack}>
-              {INTENT_OUTCOMES.map((option) => (
-                <ChoiceCard
-                  key={option.id}
-                  label={option.label}
-                  selected={draft.intentOutcome === option.id}
-                  onPress={() => patch({ intentOutcome: option.id })}
-                />
-              ))}
-            </View>
+            {RELATIONSHIP_TRACKS.map((track) => (
+              <Fragment key={track}>
+                <Text style={styles.fieldLabel}>{track}</Text>
+                <View style={styles.stack}>
+                  {INTENT_OUTCOMES.filter((option) => option.track === track).map(
+                    (option) => (
+                      <ChoiceCard
+                        key={option.id}
+                        label={option.label}
+                        hint={option.hint}
+                        selected={draft.intentOutcome === option.id}
+                        onPress={() => patch({ intentOutcome: option.id })}
+                      />
+                    ),
+                  )}
+                </View>
+              </Fragment>
+            ))}
             <Text style={styles.helper}>
               Choose what feels true right now .. you can change this later
             </Text>
