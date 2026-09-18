@@ -40,13 +40,18 @@ export type EarlyAccessSignup = {
 };
 
 export type MemberProfile = {
-  firstName: string;
-  lastName: string;
+  /** The member's own name — a first name or a full name, their choice. */
+  name: string;
   gender: string;
   dateOfBirth: string;
   city: string;
-  religion: string | null;
   cityId: string;
+  /** What strangers see before a mutual match; null means the first letter of `name`. */
+  nickname: string | null;
+  heightCm: number | null;
+  hometown: string | null;
+  work: string | null;
+  religion: string | null;
 };
 
 export type AuthAccount = {

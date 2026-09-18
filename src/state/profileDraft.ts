@@ -40,6 +40,15 @@ export type OptionalAnswer = {
 
 export type IntroStyle = "initial" | "nickname";
 
+/** Matches the API's Gender enum. Empty until the member answers. */
+export type GenderChoice = "" | "Male" | "Female" | "Other";
+
+export const GENDER_OPTIONS: { value: Exclude<GenderChoice, "">; label: string }[] = [
+  { value: "Female", label: "Woman" },
+  { value: "Male", label: "Man" },
+  { value: "Other", label: "Another way" },
+];
+
 export type ProfileDraft = {
   name: string;
   /**
@@ -49,6 +58,8 @@ export type ProfileDraft = {
   introStyle: IntroStyle;
   /** Used when introStyle is nickname. */
   nickname: string;
+  /** How the member describes themselves. Sent to the API; separate from `lookingFor`. */
+  gender: GenderChoice;
   birth: BirthDate;
   city: LaunchCity | "";
   phone: string;
@@ -129,6 +140,7 @@ export const emptyDraft = (): ProfileDraft => ({
   name: "",
   introStyle: "initial",
   nickname: "",
+  gender: "",
   birth: { day: "", month: "", year: "" },
   city: "",
   phone: "",

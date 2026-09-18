@@ -30,3 +30,25 @@ export function startEmailVerification(email: string): Promise<OtpRequested> {
 export function verifyEmailCode(email: string, code: string): Promise<AuthAccount> {
   return request<AuthAccount>("/members/me/email/verify", { method: "POST", body: { email, code } });
 }
+
+/** The basic details the API stores. A full replace — anything left out is cleared. */
+export type ProfileBasics = {
+  name: string;
+  gender: "Male" | "Female" | "Other";
+  /** ISO date, `YYYY-MM-DD`. */
+  dateOfBirth: string;
+  city: string;
+  nickname?: string | null;
+  heightCm?: number | null;
+  hometown?: string | null;
+  work?: string | null;
+  religion?: string | null;
+};
+
+/**
+ * Step 5 — sends the "you", "basics" and "life" answers in one go. The draft lives on the device until
+ * here because `city` is required and the "life" step is the first place it is known.
+ */
+export function saveProfile(basics: ProfileBasics): Promise<AuthAccount> {
+  return request<AuthAccount>("/members/me/profile", { method: "PUT", body: basics });
+}

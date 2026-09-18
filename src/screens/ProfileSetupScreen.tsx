@@ -15,6 +15,7 @@ import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { ApiError } from "../api/client";
 import { getMe } from "../api/members";
 import {
+  saveProfile,
   startEmailVerification,
   startPhoneRegistration,
   verifyEmailCode,
@@ -62,6 +63,7 @@ import type { RootStackParamList } from "../navigation/types";
 import {
   ageFromBirth,
   emptyDraft,
+  GENDER_OPTIONS,
   getProfileDraft,
   isValidEmail,
   isValidPhone,
@@ -79,7 +81,7 @@ import {
 import { colors, fonts, leading, radius, spacing, typography } from "../theme";
 type Props = NativeStackScreenProps<RootStackParamList, "ProfileSetup">;
 
-/** Backend error codes the access steps can hit, in the app's voice. */
+/** Backend error codes the access and profile steps can hit, in the app's voice. */
 function accessStepError(error: unknown): string {
   if (!(error instanceof ApiError)) return "Something went wrong. Please try again.";
   switch (error.code) {
@@ -99,8 +101,20 @@ function accessStepError(error: unknown): string {
       return "That code isn't right. Check it and try again.";
     case "otp_locked":
       return "Too many wrong codes. Send a new one to continue.";
+    case "city_not_supported":
+      return "Aynera isn't open in that city yet. Pick one from the list.";
+    case "underage":
+      return "You need to be 18 to join Aynera.";
     case "validation_failed":
-      return error.field("phone") ?? error.field("email") ?? "Please check what you entered.";
+      return (
+        error.field("phone") ??
+        error.field("email") ??
+        error.field("name") ??
+        error.field("nickname") ??
+        error.field("dateOfBirth") ??
+        error.field("city") ??
+        "Please check what you entered."
+      );
     case "network_error":
     case "request_timeout":
       return "We couldn't reach Aynera. Check your connection and try again.";
@@ -116,6 +130,7 @@ type StepId =
   | "email"
   | "emailCode"
   | "you"
+  | "gender"
   | "basics"
   | "life"
   | "looking"
@@ -142,6 +157,7 @@ const REQUIRED_FLOW: StepId[] = [
   "email",
   "emailCode",
   "you",
+  "gender",
   "basics",
   "life",
   "looking",
@@ -206,6 +222,12 @@ const META: Record<
   you: {
     act: "You",
     vibe: "What's your name?",
+    tone: "paper",
+    cta: "Continue",
+  },
+  gender: {
+    act: "You",
+    vibe: "And how do you describe yourself?",
     tone: "paper",
     cta: "Continue",
   },
@@ -418,7 +440,10 @@ export function ProfileSetupScreen({ navigation, route }: Props) {
           phoneVerified: account.phoneConfirmed || current.phoneVerified,
           email: account.email ?? current.email,
           emailVerified: account.emailConfirmed || current.emailVerified,
-          name: current.name || account.profile?.firstName || "",
+          name: current.name || account.profile?.name || "",
+          nickname: current.nickname || account.profile?.nickname || "",
+          introStyle: current.nickname || account.profile?.nickname ? "nickname" : current.introStyle,
+          gender: current.gender || (account.profile?.gender as ProfileDraft["gender"]) || "",
         }));
       })
       .catch(() => {
@@ -585,6 +610,8 @@ export function ProfileSetupScreen({ navigation, route }: Props) {
         if (age === null)
           return "A full birth date — you'll be shown as an age, never a date";
         return null;
+      case "gender":
+        return draft.gender === "" ? "Pick the one that fits you" : null;
       case "life":
         if (draft.city === "") return "Pick the city you're actually in";
         if (draft.work.trim().length < 2) return "A few words about what you do with your days";
@@ -654,7 +681,11 @@ export function ProfileSetupScreen({ navigation, route }: Props) {
 
   const advance = () => setIndex((v) => Math.min(v + 1, FLOW.length - 1));
 
-  /** The four access steps talk to the API; everything else is the local draft. */
+  /** The API's `YYYY-MM-DD`; the draft keeps the three boxes the member typed. */
+  const isoBirthDate = (birth: ProfileDraft["birth"]) =>
+    `${birth.year.padStart(4, "0")}-${birth.month.padStart(2, "0")}-${birth.day.padStart(2, "0")}`;
+
+  /** The steps that talk to the API; everything else only touches the local draft. */
   const runAccessStep = async (): Promise<boolean> => {
     switch (step) {
       case "phone": {
@@ -693,6 +724,26 @@ export function ProfileSetupScreen({ navigation, route }: Props) {
           patch({ emailVerified: true });
         });
       }
+      case "life": {
+        // The last step of the basic details — city is collected here, and the API requires it, so
+        // this is the first point the whole set can be sent. Everything before this stayed on device.
+        if (draft.gender === "") return true;
+        return callBackend(async () => {
+          await saveProfile({
+            name: draft.name.trim(),
+            gender: draft.gender as Exclude<ProfileDraft["gender"], "">,
+            dateOfBirth: isoBirthDate(draft.birth),
+            city: draft.city,
+            nickname:
+              draft.introStyle === "nickname" && draft.nickname.trim().length >= 2
+                ? draft.nickname.trim()
+                : null,
+            heightCm: draft.heightCm,
+            hometown: draft.hometown.trim() || null,
+            work: draft.work.trim() || null,
+          });
+        });
+      }
       default:
         return true;
     }
@@ -713,7 +764,13 @@ export function ProfileSetupScreen({ navigation, route }: Props) {
   const goNext = () => {
     dismissSpark();
     setResent("");
-    if (step === "phone" || step === "phoneCode" || step === "email" || step === "emailCode") {
+    if (
+      step === "phone" ||
+      step === "phoneCode" ||
+      step === "email" ||
+      step === "emailCode" ||
+      step === "life"
+    ) {
       void runAccessStep().then((ok) => {
         if (ok) advance();
       });
@@ -1251,6 +1308,21 @@ export function ProfileSetupScreen({ navigation, route }: Props) {
             <Text style={styles.helper}>
               Plain and true beats impressive. This sits under your name.
             </Text>
+          </View>
+        )}
+        {step === "gender" && (
+          <View style={styles.block}>
+            <View style={styles.stack}>
+              {GENDER_OPTIONS.map((option) => (
+                <ChoiceCard
+                  key={option.value}
+                  label={option.label}
+                  selected={draft.gender === option.value}
+                  onPress={() => patch({ gender: option.value })}
+                />
+              ))}
+            </View>
+            <PrivacyHint text="Used to build your introductions. Shown on your profile." />
           </View>
         )}
         {step === "looking" && (
