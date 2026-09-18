@@ -50,7 +50,7 @@ import { HeightPicker } from "../components/HeightPicker";
 import { PrivacyHint } from "../components/PrivacyHint";
 import { QuestionCard } from "../components/QuestionCard";
 import { VibeMoment } from "../components/VibeMoment";
-import { LAUNCH_CITIES, isFoundingCity } from "../data/cities";
+import { useLaunchCities } from "../data/cities";
 import {
   BELIEF_QUESTIONS,
   HEIGHT_DEFAULT_CM,
@@ -130,8 +130,8 @@ type StepId =
   | "email"
   | "emailCode"
   | "you"
-  | "gender"
-  | "basics"
+  | "self"
+  | "birth"
   | "life"
   | "looking"
   | "momentConnect"
@@ -157,8 +157,8 @@ const REQUIRED_FLOW: StepId[] = [
   "email",
   "emailCode",
   "you",
-  "gender",
-  "basics",
+  "self",
+  "birth",
   "life",
   "looking",
   "momentConnect",
@@ -221,19 +221,25 @@ const META: Record<
   },
   you: {
     act: "You",
-    vibe: "What's your name?",
+    vibe: "What you're called.",
     tone: "paper",
     cta: "Continue",
   },
-  gender: {
+  self: {
     act: "You",
-    vibe: "And how do you describe yourself?",
+    vibe: "How you'd describe yourself.",
     tone: "paper",
     cta: "Continue",
   },
-  basics: {
+  birth: {
     act: "You",
-    vibe: "Two small things people always ask.",
+    vibe: "When and where you're from.",
+    tone: "paper",
+    cta: "Continue",
+  },
+  looking: {
+    act: "You",
+    vibe: "Who you'd like to meet.",
     tone: "paper",
     cta: "Continue",
   },
@@ -257,13 +263,7 @@ const META: Record<
   },
   life: {
     act: "You",
-    vibe: "Where do you want to meet people?",
-    tone: "paper",
-    cta: "Continue",
-  },
-  looking: {
-    act: "You",
-    vibe: "Who are you hoping to meet?",
+    vibe: "Where you are now.",
     tone: "paper",
     cta: "Continue",
   },
@@ -345,7 +345,11 @@ const META: Record<
 const EDIT_ENTRY: Record<EditTarget, StepId> = {
   hero: "photos",
   life: "life",
-  basics: "basics",
+  // "basics" is the vitals-panel edit chip, and height is what it was about.
+  basics: "self",
+  birth: "birth",
+  self: "self",
+  looking: "looking",
   everyday: "lifestyle",
   voice: "voiceAnswer",
   story: "dealbreaker",
@@ -385,6 +389,18 @@ export function ProfileSetupScreen({ navigation, route }: Props) {
   /** Backend refusal for the current access step; cleared on any input change. */
   const [stepError, setStepError] = useState<string | null>(null);
   const [livenessOpen, setLivenessOpen] = useState(false);
+
+  /**
+   * Cities offered on the `life` step, live from the catalog. Only the founding wave is
+   * open for registration; if the catalog somehow reports none, fall back to the whole
+   * active list rather than render an empty list the member cannot get past.
+   */
+  const catalogCities = useLaunchCities();
+  const openCities = useMemo(() => {
+    const founding = catalogCities.filter((c) => c.status === "founding");
+    return founding.length > 0 ? founding : catalogCities;
+  }, [catalogCities]);
+
   const scrollRef = useRef<ScrollView>(null);
   const fieldY = useRef<Record<string, number>>({});
   const pendingReveal = useRef<{ mode: "end" | "y"; y: number } | null>(null);
@@ -444,6 +460,10 @@ export function ProfileSetupScreen({ navigation, route }: Props) {
           nickname: current.nickname || account.profile?.nickname || "",
           introStyle: current.nickname || account.profile?.nickname ? "nickname" : current.introStyle,
           gender: current.gender || (account.profile?.gender as ProfileDraft["gender"]) || "",
+          city: current.city || account.profile?.city || "",
+          heightCm: current.heightCm ?? account.profile?.heightCm ?? null,
+          hometown: current.hometown || account.profile?.hometown || "",
+          work: current.work || account.profile?.work || "",
         }));
       })
       .catch(() => {
@@ -453,6 +473,15 @@ export function ProfileSetupScreen({ navigation, route }: Props) {
       cancelled = true;
     };
   }, []);
+
+  // While only one city is open there is nothing to choose, so pick it. Guarded on an empty
+  // city so re-entering this step from Settings never overwrites the member's own answer.
+  useEffect(() => {
+    if (openCities.length !== 1) return;
+    setDraft((current) =>
+      current.city === "" ? { ...current, city: openCities[0].id } : current,
+    );
+  }, [openCities]);
 
   const editing = !!startAt;
   const step = FLOW[index];
@@ -583,7 +612,6 @@ export function ProfileSetupScreen({ navigation, route }: Props) {
       case "lifestyle":
       case "beliefs":
       case "notifications":
-      case "basics":
         return null;
       case "phone":
         return isValidPhone(draft.phone)
@@ -607,17 +635,21 @@ export function ProfileSetupScreen({ navigation, route }: Props) {
           draft.nickname.trim().length < 2
         )
           return "A nickname of at least 2 letters, or switch to first letter";
-        if (age === null)
-          return "A full birth date — you'll be shown as an age, never a date";
         return null;
-      case "gender":
+      case "self":
         return draft.gender === "" ? "Pick the one that fits you" : null;
+      case "birth":
+        return age === null
+          ? "A full birth date — you'll be shown as an age, never a date"
+          : null;
+      case "looking":
+        return draft.lookingFor === ""
+          ? "Choose who you're hoping to meet"
+          : null;
       case "life":
         if (draft.city === "") return "Pick the city you're actually in";
         if (draft.work.trim().length < 2) return "A few words about what you do with your days";
         return null;
-      case "looking":
-        return draft.lookingFor === "" ? "Choose who you're hoping to meet" : null;
       case "taste":
         if (tasteIndex < CHIP_GROUPS.length - 1) return null;
         return draft.chips.length < MIN_CHIPS
@@ -777,7 +809,7 @@ export function ProfileSetupScreen({ navigation, route }: Props) {
       return;
     }
     if (step === "notifications") patch({ notificationsOn: true });
-    if (step === "basics" && draft.heightCm === null)
+    if (step === "self" && draft.heightCm === null)
       patch({ heightCm: HEIGHT_DEFAULT_CM });
     if (step === "taste" && !tasteSummary) {
       // Always walk every taste category before the summary.
@@ -1068,29 +1100,6 @@ export function ProfileSetupScreen({ navigation, route }: Props) {
             ) : null}
           </View>
         )}
-        {step === "basics" && (
-          <View style={styles.block}>
-            <Text style={styles.fieldLabel}>How tall are you?</Text>
-            <HeightPicker
-              cm={draft.heightCm ?? HEIGHT_DEFAULT_CM}
-              onChange={(heightCm) => patch({ heightCm })}
-            />
-            <PrivacyHint kind="eye" text="Shown on your profile" />
-
-            <Text style={styles.fieldLabel}>Where are you originally from?</Text>
-            <Field
-              variant="box"
-              value={draft.hometown}
-              onChangeText={(hometown) => patch({ hometown })}
-              placeholder="Kochi, Patna, Pune…"
-              maxFontSizeMultiplier={1.2}
-              onFocus={() => revealFocusedField("end")}
-            />
-            <Text style={styles.helper}>
-              Hometowns start more conversations here than job titles do.
-            </Text>
-          </View>
-        )}
         {step === "lifestyle" && (
           <View style={styles.block}>
             <AppText variant="meta" tone="muted" center>
@@ -1182,16 +1191,18 @@ export function ProfileSetupScreen({ navigation, route }: Props) {
         {step === "you" && (
           <View style={styles.block}>
             <AppText variant="meta" tone="muted" center>
-              Your real first name — kept for verification and shown after a match
+              Your real name — kept for verification and shown after a match
             </AppText>
             <Field
               value={draft.name}
               onChangeText={(name) => patch({ name })}
-              placeholder="First name"
+              placeholder="Name"
               variant="box"
               autoFocus
               maxFontSizeMultiplier={1.2}
-              onFocus={() => revealFocusedField("end")}
+              // This field sits at the top of the step, so revealing it means staying at the top.
+              // scrollToEnd would drop the member at the birth date, away from what they just tapped.
+              onFocus={() => revealFocusedField("y", 0)}
             />
 
             <Text style={styles.fieldLabel}>Before a match, introduce me as</Text>
@@ -1232,8 +1243,32 @@ export function ProfileSetupScreen({ navigation, route }: Props) {
                     : "After a mutual match, your real first name is always shown"
               }
             />
+          </View>
+        )}
+        {step === "self" && (
+          <View style={styles.block}>
+            <Text style={styles.fieldLabel}>How do you describe yourself?</Text>
+            <View style={styles.stack}>
+              {GENDER_OPTIONS.map((option) => (
+                <ChoiceCard
+                  key={option.value}
+                  label={option.label}
+                  selected={draft.gender === option.value}
+                  onPress={() => patch({ gender: option.value })}
+                />
+              ))}
+            </View>
 
-            <Text style={styles.fieldLabel}>And when were you born?</Text>
+            <Text style={styles.fieldLabel}>How tall are you?</Text>
+            <HeightPicker
+              cm={draft.heightCm ?? HEIGHT_DEFAULT_CM}
+              onChange={(heightCm) => patch({ heightCm })}
+            />
+            <PrivacyHint kind="eye" text="Shown on your profile" />
+          </View>
+        )}
+        {step === "birth" && (
+          <View style={styles.block}>
             <View style={styles.birthRow}>
               {(
                 [
@@ -1256,12 +1291,14 @@ export function ProfileSetupScreen({ navigation, route }: Props) {
                   }
                   placeholder={field.label}
                   keyboardType="number-pad"
+                  autoFocus={field.key === "day"}
                   maxFontSizeMultiplier={1.2}
                   accessibilityLabel={
                     field.key === "day" ? "Day" : field.key === "month" ? "Month" : "Year"
                   }
                   style={field.key === "year" ? styles.birthInputWide : styles.birthInput}
-                  onFocus={() => revealFocusedField("end")}
+                  // Top of its own step now, so revealing means staying put.
+                  onFocus={() => revealFocusedField("y", 0)}
                 />
               ))}
             </View>
@@ -1271,6 +1308,20 @@ export function ProfileSetupScreen({ navigation, route }: Props) {
                 : "Your age is shown; your birthday never is."}
             </Text>
             <PrivacyHint text="Your date of birth is never shown publicly" />
+
+            <Text style={styles.fieldLabel}>Where are you originally from?</Text>
+            <Field
+              variant="box"
+              value={draft.hometown}
+              onChangeText={(hometown) => patch({ hometown })}
+              placeholder="Kochi, Patna, Pune…"
+              maxFontSizeMultiplier={1.2}
+              onFocus={() => revealFocusedField("end")}
+            />
+            <Text style={styles.helper}>
+              Hometowns start more conversations here than job titles do.
+            </Text>
+            <PrivacyHint kind="eye" text="Shown on your profile" />
           </View>
         )}
         {step === "life" && (
@@ -1279,7 +1330,7 @@ export function ProfileSetupScreen({ navigation, route }: Props) {
               We'll use this to introduce you nearby. Only the city appears on your profile.
             </AppText>
             <View style={styles.stack}>
-              {LAUNCH_CITIES.map((city) => (
+              {openCities.map((city) => (
                 <ChoiceCard
                   key={city.id}
                   label={city.label}
@@ -1290,11 +1341,6 @@ export function ProfileSetupScreen({ navigation, route }: Props) {
               ))}
             </View>
             <PrivacyHint text="Your city or general area may be shown" />
-            {draft.city && !isFoundingCity(draft.city) ? (
-              <Text style={styles.helper}>
-                {draft.city} is next-city interest .. Bangalore is open first. You can still look through the founding circle after you send your profile
-              </Text>
-            ) : null}
 
             <Text style={styles.fieldLabel}>What you do with your days</Text>
             <Field
@@ -1310,23 +1356,9 @@ export function ProfileSetupScreen({ navigation, route }: Props) {
             </Text>
           </View>
         )}
-        {step === "gender" && (
-          <View style={styles.block}>
-            <View style={styles.stack}>
-              {GENDER_OPTIONS.map((option) => (
-                <ChoiceCard
-                  key={option.value}
-                  label={option.label}
-                  selected={draft.gender === option.value}
-                  onPress={() => patch({ gender: option.value })}
-                />
-              ))}
-            </View>
-            <PrivacyHint text="Used to build your introductions. Shown on your profile." />
-          </View>
-        )}
         {step === "looking" && (
           <View style={styles.block}>
+            <Text style={styles.fieldLabel}>Who would you like to meet?</Text>
             <View style={styles.stack}>
               {LOOKING_FOR.map((option) => (
                 <ChoiceCard
@@ -1337,7 +1369,15 @@ export function ProfileSetupScreen({ navigation, route }: Props) {
                 />
               ))}
             </View>
-            <PrivacyHint text="Shown on your profile" />
+
+            <AgeRangeSelector
+              minAge={draft.ageMin}
+              maxAge={draft.ageMax}
+              flexible={draft.ageFlexible}
+              onChangeRange={(ageMin, ageMax) => patch({ ageMin, ageMax })}
+              onChangeFlexible={(ageFlexible) => patch({ ageFlexible })}
+            />
+            <PrivacyHint text="Never shown to anyone else" />
           </View>
         )}
         {step === "taste" && (
@@ -1425,14 +1465,6 @@ export function ProfileSetupScreen({ navigation, route }: Props) {
               ))}
             </View>
             <PrivacyHint kind="eye" text="Shown on your profile" />
-
-            <AgeRangeSelector
-              minAge={draft.ageMin}
-              maxAge={draft.ageMax}
-              flexible={draft.ageFlexible}
-              onChangeRange={(ageMin, ageMax) => patch({ ageMin, ageMax })}
-              onChangeFlexible={(ageFlexible) => patch({ ageFlexible })}
-            />
           </View>
         )}
         {step === "dealbreaker" && (

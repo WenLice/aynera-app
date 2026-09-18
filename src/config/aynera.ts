@@ -14,8 +14,9 @@ export const KHAT_MAX_CHARS = 220;
 /** Soft cap on newly opened mutual conversations. Existing threads stay. */
 export const MAX_ACTIVE_NEW_CONVERSATIONS = 5;
 
-export const AGE_MIN = 21;
-export const AGE_MAX = 55;
+/** Ends of the age-range slider. 18 is the platform's minimum age to join. */
+export const AGE_MIN = 18;
+export const AGE_MAX = 45;
 export const AGE_DEFAULT_MIN = 24;
 export const AGE_DEFAULT_MAX = 32;
 

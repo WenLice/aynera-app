@@ -16,6 +16,7 @@ import {
   setHideContacts,
 } from "../state/privacy";
 import {
+  ageFromBirth,
   getProfileDraft,
   publishedVitals,
   resetProfileDraft,
@@ -43,6 +44,7 @@ type Props = NativeStackScreenProps<RootStackParamList, "Settings">;
 export function SettingsScreen({ navigation }: Props) {
   const scrollRef = useResetScrollOnFocus();
   const draft = useSyncExternalStore(subscribeProfileDraft, getProfileDraft);
+  const age = ageFromBirth(draft.birth);
   const [paused, setPaused] = useState(false);
   const [letters, setLetters] = useState(draft.notificationsOn);
   const [replies, setReplies] = useState(draft.notificationsOn);
@@ -159,17 +161,21 @@ export function SettingsScreen({ navigation }: Props) {
               onPress={() => navigation.navigate("ProfileSetup", { startAt: "life" })}
             />
             <LinkRow
-              label="Height and hometown"
+              label="Height"
+              value={draft.heightCm ? formatHeight(draft.heightCm) : "Not set"}
+              onPress={() =>
+                navigation.navigate("ProfileSetup", { startAt: "self" })
+              }
+            />
+            <LinkRow
+              label="Age and hometown"
               value={
-                [
-                  draft.heightCm ? formatHeight(draft.heightCm) : null,
-                  draft.hometown.trim() || null,
-                ]
+                [age ? `${age}` : null, draft.hometown.trim() || null]
                   .filter(Boolean)
                   .join(" · ") || "Not set"
               }
               onPress={() =>
-                navigation.navigate("ProfileSetup", { startAt: "basics" })
+                navigation.navigate("ProfileSetup", { startAt: "birth" })
               }
             />
             <LinkRow
@@ -180,9 +186,16 @@ export function SettingsScreen({ navigation }: Props) {
               }
             />
             <LinkRow
-              label="Age range for introductions"
-              value={`${draft.ageMin}–${draft.ageMax}${draft.ageFlexible ? " · flexible" : ""}`}
-              onPress={() => navigation.navigate("ProfileSetup", { startAt: "intent" })}
+              label="Who you'd like to meet"
+              value={
+                [
+                  draft.lookingFor || null,
+                  `${draft.ageMin}–${draft.ageMax}${draft.ageFlexible ? " · flexible" : ""}`,
+                ]
+                  .filter(Boolean)
+                  .join(" · ")
+              }
+              onPress={() => navigation.navigate("ProfileSetup", { startAt: "looking" })}
             />
             <LinkRow
               label="What you're here for"

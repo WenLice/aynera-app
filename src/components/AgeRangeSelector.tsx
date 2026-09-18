@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import {
   LayoutChangeEvent,
   PanResponder,
@@ -43,10 +43,19 @@ export function AgeRangeSelector({
     setWidth(e.nativeEvent.layout.width);
   };
 
-  const ageAt = (x: number) => {
-    const clamped = Math.min(Math.max(x, 0), track);
-    return Math.round(AGE_MIN + (clamped / track) * range);
-  };
+  // Everything a gesture reads lives in a ref, so the two PanResponders below can be
+  // created once. Rebuilding them mid-drag detaches the handler that owns the gesture,
+  // which is why dragging a thumb used to move it a pixel and then stop dead.
+  const trackRef = useRef(track);
+  trackRef.current = track;
+  const onChangeRef = useRef(onChangeRange);
+  onChangeRef.current = onChangeRange;
+
+  const ageAt = useCallback((x: number) => {
+    const t = trackRef.current;
+    const clamped = Math.min(Math.max(x, 0), t);
+    return Math.round(AGE_MIN + (clamped / t) * range);
+  }, []);
 
   const startMin = useRef(0);
   const startMax = useRef(0);
@@ -56,18 +65,19 @@ export function AgeRangeSelector({
       PanResponder.create({
         onStartShouldSetPanResponder: () => true,
         onMoveShouldSetPanResponder: () => true,
+        onPanResponderTerminationRequest: () => false,
         onPanResponderGrant: () => {
           startMin.current = minRef.current;
         },
         onPanResponderMove: (_e, g) => {
           const next = Math.min(
-            ageAt(((startMin.current - AGE_MIN) / range) * track + g.dx),
+            ageAt(((startMin.current - AGE_MIN) / range) * trackRef.current + g.dx),
             maxRef.current - 1,
           );
-          onChangeRange(Math.max(AGE_MIN, next), maxRef.current);
+          onChangeRef.current(Math.max(AGE_MIN, next), maxRef.current);
         },
       }),
-    [track, range, onChangeRange],
+    [ageAt],
   );
 
   const maxResponder = useMemo(
@@ -75,18 +85,19 @@ export function AgeRangeSelector({
       PanResponder.create({
         onStartShouldSetPanResponder: () => true,
         onMoveShouldSetPanResponder: () => true,
+        onPanResponderTerminationRequest: () => false,
         onPanResponderGrant: () => {
           startMax.current = maxRef.current;
         },
         onPanResponderMove: (_e, g) => {
           const next = Math.max(
-            ageAt(((startMax.current - AGE_MIN) / range) * track + g.dx),
+            ageAt(((startMax.current - AGE_MIN) / range) * trackRef.current + g.dx),
             minRef.current + 1,
           );
-          onChangeRange(minRef.current, Math.min(AGE_MAX, next));
+          onChangeRef.current(minRef.current, Math.min(AGE_MAX, next));
         },
       }),
-    [track, range, onChangeRange],
+    [ageAt],
   );
 
   const fillLeft = minX + THUMB / 2;
@@ -103,7 +114,21 @@ export function AgeRangeSelector({
         <Text style={styles.age}>{maxAge}</Text>
       </View>
 
-      <View style={styles.trackWrap} onLayout={onLayout}>
+      <View
+        style={styles.trackWrap}
+        onLayout={onLayout}
+        // Tapping the track moves the nearer thumb. The thumbs sit deeper in the tree, so
+        // they win the responder when touched directly; this only catches taps that miss them.
+        onStartShouldSetResponder={() => true}
+        onResponderRelease={(e) => {
+          const age = ageAt(e.nativeEvent.locationX - THUMB / 2);
+          if (Math.abs(age - minAge) <= Math.abs(age - maxAge)) {
+            onChangeRange(Math.min(Math.max(AGE_MIN, age), maxAge - 1), maxAge);
+          } else {
+            onChangeRange(minAge, Math.max(Math.min(AGE_MAX, age), minAge + 1));
+          }
+        }}
+      >
         <View style={styles.track} />
         <View style={[styles.fill, { left: fillLeft, width: fillWidth }]} />
         <View
