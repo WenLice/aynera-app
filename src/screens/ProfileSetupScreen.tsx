@@ -7,6 +7,7 @@ import {
   ScrollView,
   StyleSheet,
   Text,
+  TextInput,
   View,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
@@ -403,6 +404,8 @@ export function ProfileSetupScreen({ navigation, route }: Props) {
   }, [catalogCities]);
 
   const scrollRef = useRef<ScrollView>(null);
+  /** Day, month, year boxes, so each can hand focus to its neighbour. */
+  const birthInputs = useRef<(TextInput | null)[]>([]);
   const fieldY = useRef<Record<string, number>>({});
   const pendingReveal = useRef<{ mode: "end" | "y"; y: number } | null>(null);
 
@@ -1277,19 +1280,34 @@ export function ProfileSetupScreen({ navigation, route }: Props) {
                   { key: "month", label: "MM", max: 2 },
                   { key: "year", label: "YYYY", max: 4 },
                 ] as const
-              ).map((field) => (
+              ).map((field, fieldIndex) => (
                 <Field
                   key={field.key}
+                  ref={(input) => {
+                    birthInputs.current[fieldIndex] = input;
+                  }}
                   variant="compact"
                   value={draft.birth[field.key]}
-                  onChangeText={(raw) =>
-                    patch({
-                      birth: {
-                        ...draft.birth,
-                        [field.key]: raw.replace(/[^0-9]/g, "").slice(0, field.max),
-                      },
-                    })
-                  }
+                  onChangeText={(raw) => {
+                    const previous = draft.birth[field.key];
+                    const digits = raw.replace(/[^0-9]/g, "").slice(0, field.max);
+                    patch({ birth: { ...draft.birth, [field.key]: digits } });
+                    // A box that just filled up hands over, so the date types straight
+                    // through. Requiring a change stops a keystroke into an already-full
+                    // box — which the slice discards — from jumping away for nothing.
+                    if (digits.length === field.max && digits !== previous) {
+                      birthInputs.current[fieldIndex + 1]?.focus();
+                    }
+                  }}
+                  onKeyPress={({ nativeEvent }) => {
+                    // Backspace in an empty box steps back, rather than doing nothing.
+                    if (
+                      nativeEvent.key === "Backspace" &&
+                      draft.birth[field.key] === ""
+                    ) {
+                      birthInputs.current[fieldIndex - 1]?.focus();
+                    }
+                  }}
                   placeholder={field.label}
                   keyboardType="number-pad"
                   autoFocus={field.key === "day"}

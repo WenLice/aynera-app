@@ -1,3 +1,4 @@
+import { forwardRef } from "react";
 import { Platform, StyleSheet, TextInput, type TextInputProps } from "react-native";
 import { colors, fonts, radius, spacing, typography } from "../theme";
 
@@ -10,17 +11,18 @@ type Props = TextInputProps & {
 /**
  * Typed text must stay visible on every Android/iOS theme.
  * Custom serif fonts plus lineHeight often clip or wash out input text.
+ *
+ * Forwards its ref so callers can move focus between fields — the date of birth
+ * boxes hand off to each other as they fill.
  */
-export function Field({
-  style,
-  variant = "box",
-  placeholderTextColor,
-  multiline,
-  ...rest
-}: Props) {
+export const Field = forwardRef<TextInput, Props>(function Field(
+  { style, variant = "box", placeholderTextColor, multiline, ...rest },
+  ref,
+) {
   return (
     <TextInput
       {...rest}
+      ref={ref}
       multiline={multiline}
       placeholderTextColor={placeholderTextColor ?? colors.textTertiary}
       selectionColor={colors.brandPrimary}
@@ -38,7 +40,7 @@ export function Field({
       ]}
     />
   );
-}
+});
 
 const styles = StyleSheet.create({
   base: {
