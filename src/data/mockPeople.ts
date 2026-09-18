@@ -279,7 +279,7 @@ export const MOCK_PEOPLE: PersonProfile[] = [
     city: "Bangalore",
     area: "Jayanagar",
     work: "Architect",
-    lookingFor: "Everyone",
+    lookingFor: "Both",
     intent: "Looking for a relationship",
     pace: "Ready when it feels right",
     reason: "Both prefer smaller social settings .. shared love of tea",
@@ -306,7 +306,7 @@ export const MOCK_PEOPLE: PersonProfile[] = [
     vitals: [
       { label: "Intent", value: "Looking for a relationship" },
       { label: "Pace", value: "Ready when it feels right" },
-      { label: "Open to", value: "Everyone" },
+      { label: "Open to", value: "Both" },
       { label: "Height", value: "5' 6\"" },
       { label: "From", value: "Bangalore" },
       { label: "Drinks", value: "No" },

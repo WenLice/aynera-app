@@ -3,7 +3,7 @@
 export const LOOKING_FOR = [
   "Women",
   "Men",
-  "Everyone",
+  "Both",
 ] as const;
 
 export const CHIP_GROUPS = [
