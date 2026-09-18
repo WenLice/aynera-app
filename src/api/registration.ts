@@ -35,6 +35,8 @@ export function verifyEmailCode(email: string, code: string): Promise<AuthAccoun
 export type ProfileBasics = {
   name: string;
   gender: Gender;
+  /** False is "prefer not to say" — hidden on the profile, still used for matching. */
+  genderIsPublic: boolean;
   /** ISO date, `YYYY-MM-DD`. */
   dateOfBirth: string;
   city: string;

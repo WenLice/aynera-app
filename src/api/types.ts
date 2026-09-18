@@ -49,6 +49,7 @@ export type MemberProfile = {
   /** The member's own name — a first name or a full name, their choice. */
   name: string;
   gender: string;
+  genderIsPublic: boolean;
   dateOfBirth: string;
   city: string;
   cityId: string;

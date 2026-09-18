@@ -44,12 +44,15 @@ export type IntroStyle = "initial" | "nickname";
 /** The API's Gender enum, plus the empty value the draft starts with. */
 export type GenderChoice = "" | Gender;
 
-/** `Other` is the API's code for third gender / transgender. */
+/**
+ * `Other` is the API's code for third gender / transgender. "Prefer not to say" is not
+ * a gender here — it is `genderIsPublic: false`, which hides the answer without taking
+ * the member out of matching.
+ */
 export const GENDER_OPTIONS: { value: Exclude<GenderChoice, "">; label: string }[] = [
   { value: "Male", label: "Male" },
   { value: "Female", label: "Female" },
   { value: "Other", label: "Third Gender / Transgender" },
-  { value: "PreferNotToSay", label: "Prefer not to say" },
 ];
 
 export type ProfileDraft = {
@@ -63,6 +66,8 @@ export type ProfileDraft = {
   nickname: string;
   /** How the member describes themselves. Sent to the API; separate from `lookingFor`. */
   gender: GenderChoice;
+  /** False is "prefer not to say" — hidden on the profile, still used for matching. */
+  genderIsPublic: boolean;
   birth: BirthDate;
   city: LaunchCity | "";
   phone: string;
@@ -149,6 +154,7 @@ export const emptyDraft = (): ProfileDraft => ({
   introStyle: "initial",
   nickname: "",
   gender: "",
+  genderIsPublic: true,
   birth: { day: "", month: "", year: "" },
   city: "",
   phone: "",

@@ -50,6 +50,7 @@ import { CodeInput, CODE_LENGTH } from "../components/CodeInput";
 import { Field } from "../components/Field";
 import { HeightPicker } from "../components/HeightPicker";
 import { PrivacyHint } from "../components/PrivacyHint";
+import { VisibilityToggle } from "../components/VisibilityToggle";
 import { QuestionCard } from "../components/QuestionCard";
 import { VibeMoment } from "../components/VibeMoment";
 import { useLaunchCities } from "../data/cities";
@@ -464,6 +465,7 @@ export function ProfileSetupScreen({ navigation, route }: Props) {
           nickname: current.nickname || account.profile?.nickname || "",
           introStyle: current.nickname || account.profile?.nickname ? "nickname" : current.introStyle,
           gender: current.gender || (account.profile?.gender as ProfileDraft["gender"]) || "",
+          genderIsPublic: account.profile?.genderIsPublic ?? current.genderIsPublic,
           city: current.city || account.profile?.city || "",
           heightCm: current.heightCm ?? account.profile?.heightCm ?? null,
           hometown: current.hometown || account.profile?.hometown || "",
@@ -768,6 +770,7 @@ export function ProfileSetupScreen({ navigation, route }: Props) {
           await saveProfile({
             name: draft.name.trim(),
             gender: draft.gender as Exclude<ProfileDraft["gender"], "">,
+            genderIsPublic: draft.genderIsPublic,
             dateOfBirth: isoBirthDate(draft.birth),
             city: draft.city,
             nickname:
@@ -1262,6 +1265,12 @@ export function ProfileSetupScreen({ navigation, route }: Props) {
                 />
               ))}
             </View>
+            <VisibilityToggle
+              visible={draft.genderIsPublic}
+              onChange={(genderIsPublic) => patch({ genderIsPublic })}
+              hiddenLabel="Prefer not to say — kept off your profile"
+              accessibilityLabel="Show my gender on my profile"
+            />
 
             <Text style={styles.fieldLabel}>How tall are you?</Text>
             <HeightPicker

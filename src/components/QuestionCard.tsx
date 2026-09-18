@@ -1,5 +1,6 @@
 import { Pressable, StyleSheet, View } from "react-native";
 import { AppText } from "./AppText";
+import { VisibilityToggle } from "./VisibilityToggle";
 import { colors, elevation, radius, spacing } from "../theme";
 import { selectTap } from "../utils/feedback";
 
@@ -70,23 +71,7 @@ export function QuestionCard({
         })}
       </View>
 
-      <Pressable
-        accessibilityRole="checkbox"
-        accessibilityState={{ checked: visible }}
-        accessibilityLabel="Show this on my profile"
-        onPress={() => {
-          selectTap();
-          onChangeVisible(!visible);
-        }}
-        style={({ pressed }) => [styles.visibleRow, pressed && styles.pressed]}
-      >
-        <View style={[styles.box, visible && styles.boxOn]}>
-          {visible ? <View style={styles.tick} /> : null}
-        </View>
-        <AppText variant="meta" tone={visible ? "plum" : "muted"}>
-          {visible ? "Shown on your profile" : "Kept private"}
-        </AppText>
-      </Pressable>
+      <VisibilityToggle visible={visible} onChange={onChangeVisible} />
     </View>
   );
 }
@@ -130,29 +115,4 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
   pressed: { opacity: 0.85 },
-  visibleRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: spacing.sm,
-    marginTop: spacing.xs,
-  },
-  box: {
-    width: 20,
-    height: 20,
-    borderRadius: 6,
-    borderWidth: 1.5,
-    borderColor: colors.borderStrong,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  boxOn: {
-    borderColor: colors.brandPrimary,
-    backgroundColor: colors.brandPrimary,
-  },
-  tick: {
-    width: 8,
-    height: 8,
-    borderRadius: 2,
-    backgroundColor: colors.textOnPrimary,
-  },
 });
