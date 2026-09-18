@@ -4,7 +4,11 @@ import {
   LIFESTYLE_QUESTIONS,
   formatHeight,
 } from "../data/lifestyleOptions";
-import { INTENT_OUTCOMES, PACE_OPTIONS } from "../data/profileOptions";
+import {
+  INTENT_OUTCOMES,
+  PACE_OPTIONS,
+  interestedInLabel,
+} from "../data/profileOptions";
 import {
   ageFromBirth,
   publicIntroName,
@@ -122,7 +126,8 @@ export function draftToPerson(draft: ProfileDraft): PersonProfile | null {
   const vitals: { label: string; value: string }[] = [];
   if (intent) vitals.push({ label: "Intent", value: intent });
   if (pace) vitals.push({ label: "Pace", value: pace });
-  if (draft.lookingFor) vitals.push({ label: "Open to", value: draft.lookingFor });
+  const openTo = interestedInLabel(draft.lookingFor);
+  if (openTo) vitals.push({ label: "Open to", value: openTo });
   if (draft.heightCm)
     vitals.push({ label: "Height", value: formatHeight(draft.heightCm) });
   if (draft.hometown.trim())
@@ -137,7 +142,7 @@ export function draftToPerson(draft: ProfileDraft): PersonProfile | null {
     age: ageFromBirth(draft.birth) ?? 0,
     city: draft.city,
     work: draft.work.trim(),
-    lookingFor: draft.lookingFor,
+    lookingFor: openTo,
     intent,
     pace,
     reason: "",

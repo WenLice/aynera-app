@@ -1390,10 +1390,11 @@ export function ProfileSetupScreen({ navigation, route }: Props) {
             <View style={styles.stack}>
               {LOOKING_FOR.map((option) => (
                 <ChoiceCard
-                  key={option}
-                  label={option}
-                  selected={draft.lookingFor === option}
-                  onPress={() => patch({ lookingFor: option })}
+                  key={option.id}
+                  label={option.label}
+                  hint={option.hint}
+                  selected={draft.lookingFor === option.id}
+                  onPress={() => patch({ lookingFor: option.id })}
                 />
               ))}
             </View>

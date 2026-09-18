@@ -4,6 +4,9 @@
  */
 export type RelationshipTrack = "Fluid" | "Intent";
 
+/** Who a member wants to meet. Mirrors the gender options, plus a catch-all. */
+export type InterestedIn = "Male" | "Female" | "Other" | "Everyone";
+
 /** The four outcomes offered on aynera.com/track, two under each track. */
 export type IntentOutcome = "PLATONIC" | "SPONTANEOUS" | "PROSPECT" | "LEGACY";
 

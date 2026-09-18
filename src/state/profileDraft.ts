@@ -1,5 +1,5 @@
 import type { Gender } from "../api/types";
-import type { LaunchCity, RelationshipTrack } from "../domain/types";
+import type { InterestedIn, LaunchCity, RelationshipTrack } from "../domain/types";
 import {
   AGE_DEFAULT_MAX,
   AGE_DEFAULT_MIN,
@@ -82,7 +82,8 @@ export type ProfileDraft = {
   beliefs: Record<string, OptionalAnswer>;
   notificationsOn: boolean;
   work: string;
-  lookingFor: string;
+  /** Id from `LOOKING_FOR`, not a label — use `interestedInLabel` to show it. */
+  lookingFor: InterestedIn | "";
   chips: string[];
   /**
    * Which of the two tracks the member picked. Held separately from

@@ -33,7 +33,7 @@ import { resetMeetPlans } from "../state/meetPlans";
 import { resetOpenings } from "../state/openings";
 import { resetPrivacy } from "../state/privacy";
 import { resetThreads } from "../state/threads";
-import { INTENT_OUTCOMES } from "../data/profileOptions";
+import { INTENT_OUTCOMES, interestedInLabel } from "../data/profileOptions";
 import { colors, elevation, radius, spacing } from "../theme";
 import { selectTap } from "../utils/feedback";
 import { useResetScrollOnFocus } from "../utils/useResetScrollOnFocus";
@@ -189,7 +189,7 @@ export function SettingsScreen({ navigation }: Props) {
               label="Who you'd like to meet"
               value={
                 [
-                  draft.lookingFor || null,
+                  interestedInLabel(draft.lookingFor) || null,
                   `${draft.ageMin}–${draft.ageMax}${draft.ageFlexible ? " · flexible" : ""}`,
                 ]
                   .filter(Boolean)

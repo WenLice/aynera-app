@@ -1,10 +1,41 @@
+import type { Gender } from "../api/types";
+import type {
+  IntentOutcome,
+  InterestedIn,
+  RelationshipPace,
+  RelationshipTrack,
+} from "../domain/types";
+
 /** Selectable chips for Create · You */
 
-export const LOOKING_FOR = [
-  "Women",
-  "Men",
-  "Both",
-] as const;
+/**
+ * Who the member wants to meet. The first three mirror the gender options exactly, so the
+ * reciprocal hard filter is plain set membership; `Everyone` is the union of all three.
+ * `genders` is the part that matters to matching — the label is only what is shown.
+ */
+export const LOOKING_FOR: {
+  id: InterestedIn;
+  label: string;
+  hint?: string;
+  genders: Gender[];
+}[] = [
+  { id: "Male", label: "Male", genders: ["Male"] },
+  { id: "Female", label: "Female", genders: ["Female"] },
+  {
+    id: "Other",
+    label: "Third Gender / Transgender",
+    genders: ["Other"],
+  },
+  {
+    id: "Everyone",
+    label: "Everyone",
+    hint: "All three, equally",
+    genders: ["Male", "Female", "Other"],
+  },
+];
+
+export const interestedInLabel = (id: string) =>
+  LOOKING_FOR.find((option) => option.id === id)?.label ?? "";
 
 export const CHIP_GROUPS = [
   {
@@ -157,13 +188,7 @@ export const CHIP_GROUPS = [
   },
 ] as const;
 
-import type {
-  IntentOutcome,
-  RelationshipPace,
-  RelationshipTrack,
-} from "../domain/types";
 
-/** What this could become — not values, not pace. */
 /** Mirrors the four choices on aynera.com/track, grouped under their two tracks. */
 export const INTENT_OUTCOMES: {
   id: IntentOutcome;
