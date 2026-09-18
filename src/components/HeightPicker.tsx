@@ -16,7 +16,18 @@ type Props = {
 
 /** How long a button must be held before it starts repeating, and how fast it then runs. */
 const HOLD_DELAY_MS = 300;
-const REPEAT_MS = 55;
+const REPEAT_MS = 110;
+
+const CM_PER_INCH = 2.54;
+
+/**
+ * The readout is feet and inches, so the buttons step in whole inches — a centimetre step is
+ * finer than the display can show, and 167 cm and 168 cm both read 5' 6", which made some
+ * presses look like nothing happened. Rounds the same way `formatHeight` does, so the value
+ * shown and the value stepped never disagree.
+ */
+const toInches = (cm: number) => Math.round(cm / CM_PER_INCH);
+const toCm = (inches: number) => Math.round(inches * CM_PER_INCH);
 
 /** Steps in whole centimetres, shown in feet and inches. Tap to nudge, hold to run. */
 export function HeightPicker({ cm, onChange }: Props) {
@@ -29,9 +40,15 @@ export function HeightPicker({ cm, onChange }: Props) {
   const delayTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const repeatTimer = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  /** Returns false at either end of the range, so a hold can stop itself. */
-  const bump = useCallback((delta: number) => {
-    const next = Math.min(HEIGHT_MAX_CM, Math.max(HEIGHT_MIN_CM, cmRef.current + delta));
+  /**
+   * Moves by whole inches. Returns false at either end of the range, so a hold can stop
+   * itself. A value that is off the inch grid snaps onto it on the first press.
+   */
+  const bump = useCallback((deltaInches: number) => {
+    const next = Math.min(
+      HEIGHT_MAX_CM,
+      Math.max(HEIGHT_MIN_CM, toCm(toInches(cmRef.current) + deltaInches)),
+    );
     if (next === cmRef.current) return false;
     onChangeRef.current(next);
     return true;
