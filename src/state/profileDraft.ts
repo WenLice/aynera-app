@@ -1,5 +1,5 @@
 import type { Gender } from "../api/types";
-import type { LaunchCity } from "../domain/types";
+import type { LaunchCity, RelationshipTrack } from "../domain/types";
 import {
   AGE_DEFAULT_MAX,
   AGE_DEFAULT_MIN,
@@ -79,7 +79,12 @@ export type ProfileDraft = {
   work: string;
   lookingFor: string;
   chips: string[];
-  /** Outcome of being here — not values, not pace. */
+  /**
+   * Which of the two tracks the member picked. Held separately from
+   * `intentOutcome` because a track is chosen first, before any outcome exists.
+   */
+  relationshipTrack: RelationshipTrack | "";
+  /** Outcome of being here — one of the two children of `relationshipTrack`. */
   intentOutcome: string;
   paceId: string;
   ageMin: number;
@@ -158,6 +163,7 @@ export const emptyDraft = (): ProfileDraft => ({
   work: "",
   lookingFor: "",
   chips: [],
+  relationshipTrack: "",
   intentOutcome: "",
   paceId: "",
   ageMin: AGE_DEFAULT_MIN,

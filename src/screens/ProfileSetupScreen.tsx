@@ -1,4 +1,4 @@
-import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Image,
   Keyboard,
@@ -33,13 +33,14 @@ import type { EditTarget } from "../components/ProfileStory";
 import {
   CHIP_GROUPS,
   INTENT_OUTCOMES,
-  RELATIONSHIP_TRACKS,
   LOOKING_FOR,
   MAX_CHIPS,
   MIN_CHIPS,
   PHOTO_SLOTS,
   PROFILE_PROMPTS,
   RHYTHM,
+  TRACK_OPTIONS,
+  outcomesForTrack,
 } from "../data/profileOptions";
 import { REQUIRED_PROMPTS, OPTIONAL_PROMPT_MAX } from "../config/aynera";
 import { AgeRangeSelector } from "../components/AgeRangeSelector";
@@ -656,9 +657,9 @@ export function ProfileSetupScreen({ navigation, route }: Props) {
           ? `${MIN_CHIPS - draft.chips.length} more picks and your vibe starts to have a shape`
           : null;
       case "intent":
-        return draft.intentOutcome === ""
-          ? "Choose what you'd be happy if this became"
-          : null;
+        if (draft.relationshipTrack === "") return "Choose Fluid or Intent";
+        if (draft.intentOutcome === "") return "Now choose the one that fits";
+        return null;
       case "photos":
         return photoCount < PHOTO_SLOTS
           ? `${PHOTO_SLOTS - photoCount} more photo${PHOTO_SLOTS - photoCount === 1 ? "" : "s"} — five is where a stranger starts to trust a face`
@@ -1437,24 +1438,47 @@ export function ProfileSetupScreen({ navigation, route }: Props) {
         )}
         {step === "intent" && (
           <View style={styles.block}>
-            {RELATIONSHIP_TRACKS.map((track) => (
-              <Fragment key={track}>
-                <Text style={styles.fieldLabel}>{track}</Text>
+            <View style={styles.stack}>
+              {TRACK_OPTIONS.map((option) => (
+                <ChoiceCard
+                  key={option.id}
+                  label={option.label}
+                  hint={option.hint}
+                  selected={draft.relationshipTrack === option.id}
+                  onPress={() =>
+                    // Switching track drops an outcome belonging to the other one, so the
+                    // two can never disagree about which track the member is on.
+                    patch(
+                      draft.relationshipTrack === option.id
+                        ? { relationshipTrack: option.id }
+                        : { relationshipTrack: option.id, intentOutcome: "" },
+                    )
+                  }
+                />
+              ))}
+            </View>
+
+            {draft.relationshipTrack ? (
+              <>
+                <Text style={styles.fieldLabel}>
+                  {draft.relationshipTrack === "Fluid"
+                    ? "Open to which shape?"
+                    : "Heading where?"}
+                </Text>
                 <View style={styles.stack}>
-                  {INTENT_OUTCOMES.filter((option) => option.track === track).map(
-                    (option) => (
-                      <ChoiceCard
-                        key={option.id}
-                        label={option.label}
-                        hint={option.hint}
-                        selected={draft.intentOutcome === option.id}
-                        onPress={() => patch({ intentOutcome: option.id })}
-                      />
-                    ),
-                  )}
+                  {outcomesForTrack(draft.relationshipTrack).map((option) => (
+                    <ChoiceCard
+                      key={option.id}
+                      label={option.label}
+                      hint={option.hint}
+                      selected={draft.intentOutcome === option.id}
+                      onPress={() => patch({ intentOutcome: option.id })}
+                    />
+                  ))}
                 </View>
-              </Fragment>
-            ))}
+              </>
+            ) : null}
+
             <Text style={styles.helper}>
               Choose what feels true right now .. you can change this later
             </Text>

@@ -199,6 +199,19 @@ export const INTENT_OUTCOMES: {
 
 export const RELATIONSHIP_TRACKS: RelationshipTrack[] = ["Fluid", "Intent"];
 
+/** First choice on the intent step; taglines are the public site's own wording. */
+export const TRACK_OPTIONS: {
+  id: RelationshipTrack;
+  label: RelationshipTrack;
+  hint: string;
+}[] = [
+  { id: "Fluid", label: "Fluid", hint: "For connection that stays open" },
+  { id: "Intent", label: "Intent", hint: "For connection with a direction" },
+];
+
+export const outcomesForTrack = (track: RelationshipTrack) =>
+  INTENT_OUTCOMES.filter((option) => option.track === track);
+
 export const PACE_OPTIONS: {
   id: RelationshipPace;
   label: string;
