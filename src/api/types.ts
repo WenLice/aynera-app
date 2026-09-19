@@ -90,7 +90,7 @@ export type TokenPayload = {
   account: AuthAccount;
 };
 
-/** `POST /auth/login` result — OTP was sent; `retryAfterSeconds` is set when rate limited. */
+/** `POST /auth/otp/request` result — OTP was sent; `retryAfterSeconds` is set when rate limited. */
 export type OtpRequested = {
   expiresInSeconds: number;
   retryAfterSeconds: number | null;

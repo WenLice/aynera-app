@@ -3,7 +3,7 @@ import type { OtpRequested, TokenPayload } from "./types";
 
 /** Starts OTP sign-in for a registered member; the code goes by SMS or email. */
 export function requestOtp(identifier: string): Promise<OtpRequested> {
-  return request<OtpRequested>("/auth/login", {
+  return request<OtpRequested>("/auth/otp/request", {
     method: "POST",
     body: { identifier },
     auth: false,
@@ -12,7 +12,7 @@ export function requestOtp(identifier: string): Promise<OtpRequested> {
 }
 
 export function verifyOtp(identifier: string, code: string): Promise<TokenPayload> {
-  return request<TokenPayload>("/auth/verifysms", {
+  return request<TokenPayload>("/auth/otp/verify", {
     method: "POST",
     body: { identifier, code },
     auth: false,

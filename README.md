@@ -27,7 +27,7 @@ inlines it at build time, so set it before `expo start` / `expo export`.
 
 Wired today: launch cities (`GET /early-access/cities/GetAll`), early-access signup
 (`POST /early-access/register`), sign-in by one-time code or password
-(`/auth/login`, `/auth/verifysms`, `/auth/password`, `/auth/refresh`), and session
+(`/auth/otp/request`, `/auth/otp/verify`, `/auth/password`, `/auth/refresh`), and session
 bootstrap on Splash (`GET /members/me`, `GET /admissions/me`). Tokens are kept in
 `expo-secure-store` on phones and `localStorage` on web.
 
