@@ -2,10 +2,11 @@ import { request } from "./client";
 import type {
   AuthAccount,
   Gender,
-  IntentOutcomeCode,
   InterestedIn,
   OtpRequested,
+  OutcomeCode,
   TokenPayload,
+  TrackCode,
 } from "./types";
 
 /** Step 1 — SMS code to a number that has no account yet. 409 `user_already_exists` if it does. */
@@ -66,11 +67,13 @@ export function saveProfile(basics: ProfileBasics): Promise<AuthAccount> {
 export type MemberPreferences = {
   interestedIn: InterestedIn;
   minAge: number;
-  maxAge: number;
+  /** Null is an open upper end — "45 and older". Sent when the slider sits at its ceiling. */
+  maxAge: number | null;
   ageIsFlexible: boolean;
-  intentOutcome: IntentOutcomeCode;
-  /** Returned, not sent — the API derives it from the outcome. */
-  relationshipTrack?: "Fluid" | "Intent";
+  /** The track chosen on the first half of the intent step. Sent and stored, not derived. */
+  track: TrackCode;
+  /** The child of `track`. The API refuses a pair where the track does not own the outcome. */
+  outcome: OutcomeCode;
 };
 
 /**
@@ -78,7 +81,7 @@ export type MemberPreferences = {
  * admission can be submitted.
  */
 export function savePreferences(
-  preferences: Omit<MemberPreferences, "relationshipTrack">,
+  preferences: MemberPreferences,
 ): Promise<MemberPreferences> {
   return request<MemberPreferences>("/preferences/me", {
     method: "PUT",

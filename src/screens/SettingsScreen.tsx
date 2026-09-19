@@ -6,6 +6,7 @@ import { CommonActions } from "@react-navigation/native";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { AppText } from "../components/AppText";
 import { Button } from "../components/Button";
+import { formatMaxAge } from "../config/aynera";
 import { Sheet } from "../components/Sheet";
 import { resetKhat } from "../state/khat";
 import { resetLikes } from "../state/likes";
@@ -190,7 +191,7 @@ export function SettingsScreen({ navigation }: Props) {
               value={
                 [
                   interestedInLabel(draft.lookingFor) || null,
-                  `${draft.ageMin}–${draft.ageMax}${draft.ageFlexible ? " · flexible" : ""}`,
+                  `${draft.ageMin}–${formatMaxAge(draft.ageMax)}${draft.ageFlexible ? " · flexible" : ""}`,
                 ]
                   .filter(Boolean)
                   .join(" · ")

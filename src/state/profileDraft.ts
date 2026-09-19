@@ -99,6 +99,13 @@ export type ProfileDraft = {
   /** Id from `INTENT_OUTCOMES`, spelled as the API spells it. */
   intentOutcome: IntentOutcome | "";
   paceId: string;
+  /**
+   * Whether the member has ticked the agreement on the consent step. Device-local, and not
+   * re-read from the server on resume: the acceptance that counts is the row the API stores,
+   * and on a different device the member simply ticks again. That re-send is harmless because
+   * `POST /admissions/me/consents` is idempotent per version and keeps the original timestamp.
+   */
+  consented: boolean;
   ageMin: number;
   ageMax: number;
   ageFlexible: boolean;
@@ -179,6 +186,7 @@ export const emptyDraft = (): ProfileDraft => ({
   relationshipTrack: "",
   intentOutcome: "",
   paceId: "",
+  consented: false,
   ageMin: AGE_DEFAULT_MIN,
   ageMax: AGE_DEFAULT_MAX,
   ageFlexible: false,

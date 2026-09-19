@@ -7,7 +7,7 @@ import {
   Text,
   View,
 } from "react-native";
-import { AGE_MAX, AGE_MIN } from "../config/aynera";
+import { AGE_MAX, AGE_MIN, formatMaxAge, isOpenUpperEnd } from "../config/aynera";
 import { colors, fonts, spacing, typography } from "../theme";
 import { AppText } from "./AppText";
 
@@ -111,7 +111,7 @@ export function AgeRangeSelector({
 
       <View style={styles.labels}>
         <Text style={styles.age}>{minAge}</Text>
-        <Text style={styles.age}>{maxAge}</Text>
+        <Text style={styles.age}>{formatMaxAge(maxAge)}</Text>
       </View>
 
       <View
@@ -139,7 +139,11 @@ export function AgeRangeSelector({
         <View
           style={[styles.thumb, { left: maxX }]}
           {...maxResponder.panHandlers}
-          accessibilityLabel={`Maximum age ${maxAge}`}
+          accessibilityLabel={
+            isOpenUpperEnd(maxAge)
+              ? `Maximum age ${AGE_MAX} and older`
+              : `Maximum age ${maxAge}`
+          }
         />
       </View>
 

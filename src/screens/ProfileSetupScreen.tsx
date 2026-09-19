@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Image,
   Keyboard,
+  Linking,
   Platform,
   Pressable,
   ScrollView,
@@ -14,7 +15,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import * as ImagePicker from "expo-image-picker";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { ApiError } from "../api/client";
-import { getMe } from "../api/members";
+import { acceptConsent, getMe } from "../api/members";
 import {
   saveProfile,
   savePreferences,
@@ -44,7 +45,13 @@ import {
   TRACK_OPTIONS,
   outcomesForTrack,
 } from "../data/profileOptions";
-import { REQUIRED_PROMPTS, OPTIONAL_PROMPT_MAX } from "../config/aynera";
+import {
+  CONSENT_POLICIES,
+  OPTIONAL_PROMPT_MAX,
+  REQUIRED_PROMPTS,
+  maxAgeForApi,
+  policyUrl,
+} from "../config/aynera";
 import { AgeRangeSelector } from "../components/AgeRangeSelector";
 import { ChoiceCard } from "../components/ChoiceCard";
 import { CodeInput, CODE_LENGTH } from "../components/CodeInput";
@@ -52,6 +59,7 @@ import { Field } from "../components/Field";
 import { HeightPicker } from "../components/HeightPicker";
 import { PrivacyHint } from "../components/PrivacyHint";
 import { VisibilityToggle } from "../components/VisibilityToggle";
+import { selectTap } from "../utils/feedback";
 import { QuestionCard } from "../components/QuestionCard";
 import { VibeMoment } from "../components/VibeMoment";
 import { useLaunchCities } from "../data/cities";
@@ -148,6 +156,7 @@ type StepId =
   | "notifications"
   | "voicePick"
   | "voiceAnswer"
+  | "consent"
   | "momentGlimpse"
   | "reveal"
   | "dealbreaker"
@@ -176,6 +185,9 @@ const REQUIRED_FLOW: StepId[] = [
   "voiceAnswer",
   "liveness",
   "notifications",
+  // Last practical step before the glimpse/reveal pair, which is a deliberate mood beat —
+  // agreeing sits with the other housekeeping rather than interrupting it.
+  "consent",
   "momentGlimpse",
   "reveal",
 ];
@@ -264,6 +276,12 @@ const META: Record<
     vibe: "Should we tell you when an introduction lands?",
     tone: "paper",
     cta: "Yes, let me know",
+  },
+  consent: {
+    act: "Almost there",
+    vibe: "The promises we make each other.",
+    tone: "paper",
+    cta: "I agree",
   },
   life: {
     act: "You",
@@ -620,6 +638,10 @@ export function ProfileSetupScreen({ navigation, route }: Props) {
       case "beliefs":
       case "notifications":
         return null;
+      case "consent":
+        return draft.consented
+          ? null
+          : "Tick to agree before we send your profile for review";
       case "phone":
         return isValidPhone(draft.phone)
           ? null
@@ -763,6 +785,18 @@ export function ProfileSetupScreen({ navigation, route }: Props) {
           patch({ emailVerified: true });
         });
       }
+      case "consent": {
+        if (!draft.consented) return true;
+        return callBackend(async () => {
+          // One row per document, so a version bump can re-ask for just that one. Sent in
+          // sequence rather than in parallel: they share the member's account lock server-side,
+          // and a partial failure leaves the accepted ones recorded — the calls are idempotent,
+          // so tapping again re-sends the set without disturbing the original timestamps.
+          for (const policy of CONSENT_POLICIES) {
+            await acceptConsent(policy.kind, policy.version);
+          }
+        });
+      }
       case "life": {
         // The last step of the basic details — city is collected here, and the API requires it, so
         // this is the first point the whole set can be sent. Everything before this stayed on device.
@@ -787,14 +821,25 @@ export function ProfileSetupScreen({ navigation, route }: Props) {
       case "intent": {
         // The last of the two preference steps — "looking" is answered by now, so the
         // whole §6 filter set goes in one write, the way the profile does at "life".
-        if (draft.lookingFor === "" || draft.intentOutcome === "") return true;
+        if (
+          draft.lookingFor === "" ||
+          draft.intentOutcome === "" ||
+          draft.relationshipTrack === ""
+        ) {
+          return true;
+        }
         return callBackend(async () => {
           await savePreferences({
             interestedIn: draft.lookingFor as Exclude<ProfileDraft["lookingFor"], "">,
             minAge: draft.ageMin,
-            maxAge: draft.ageMax,
+            // Null at the slider's ceiling: "45+" is an open upper end, which is what keeps
+            // members older than the ceiling reachable at all.
+            maxAge: maxAgeForApi(draft.ageMax),
             ageIsFlexible: draft.ageFlexible,
-            intentOutcome: draft.intentOutcome as Exclude<ProfileDraft["intentOutcome"], "">,
+            // Both halves of the step are sent now; the API refuses a track that does
+            // not own the outcome, which the two-stage picker already guarantees.
+            track: draft.relationshipTrack as Exclude<ProfileDraft["relationshipTrack"], "">,
+            outcome: draft.intentOutcome as Exclude<ProfileDraft["intentOutcome"], "">,
           });
         });
       }
@@ -1705,6 +1750,44 @@ export function ProfileSetupScreen({ navigation, route }: Props) {
             </View>
           </View>
         )}
+        {step === "consent" && (
+          <View style={styles.stack}>
+            <Text style={styles.fieldLabel}>What you're agreeing to</Text>
+            <View style={styles.consentDocs}>
+              {CONSENT_POLICIES.map((policy) => (
+                <Pressable
+                  key={policy.kind}
+                  accessibilityRole="link"
+                  accessibilityLabel={`Read the ${policy.label}`}
+                  onPress={() => {
+                    selectTap();
+                    Linking.openURL(policyUrl(policy));
+                  }}
+                  style={({ pressed }) => [
+                    styles.consentDoc,
+                    pressed && styles.consentDocPressed,
+                  ]}
+                >
+                  <Text style={styles.consentDocLabel}>{policy.label}</Text>
+                  <Text style={styles.consentDocHint}>Read ›</Text>
+                </Pressable>
+              ))}
+            </View>
+
+            <VisibilityToggle
+              visible={draft.consented}
+              onChange={(consented) => patch({ consented })}
+              shownLabel="I've read and agree to all three"
+              hiddenLabel="I've read and agree to all three"
+              accessibilityLabel="I have read and agree to the Terms of Use, Privacy Notice and Community Guidelines"
+            />
+
+            <Text style={styles.consentNote}>
+              If we ever change one of these in a way that matters, we'll ask you again — and only
+              about the one that changed.
+            </Text>
+          </View>
+        )}
         {step === "reveal" && <Reveal draft={draft} />}
       </ScrollView>
 
@@ -2150,6 +2233,39 @@ const styles = StyleSheet.create({
     letterSpacing: 1,
     textTransform: "uppercase",
     marginTop: spacing.sm,
+  },
+  consentDocs: {
+    gap: spacing.xs,
+  },
+  consentDoc: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: colors.borderChip,
+    backgroundColor: colors.surfacePrimary,
+  },
+  consentDocPressed: {
+    opacity: 0.7,
+  },
+  consentDocLabel: {
+    fontFamily: fonts.bodySemi,
+    color: colors.textPrimary,
+    fontSize: typography.size.md,
+  },
+  consentDocHint: {
+    fontFamily: fonts.body,
+    color: colors.accentPrimaryPressed,
+    fontSize: typography.size.sm,
+  },
+  consentNote: {
+    fontFamily: fonts.body,
+    color: colors.textSecondary,
+    fontSize: typography.size.sm,
+    lineHeight: typography.size.sm * 1.5,
   },
   cardPressed: {
     opacity: 0.9,

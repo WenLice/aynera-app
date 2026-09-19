@@ -10,3 +10,16 @@ export function getMe(): Promise<AuthAccount> {
 export function getMyAdmission(): Promise<MemberAdmission> {
   return request<MemberAdmission>("/admissions/me");
 }
+
+/**
+ * Records acceptance of one policy document at one version.
+ *
+ * Idempotent server-side: accepting the same version twice keeps the original timestamp, so a
+ * retry after a partial failure is safe and does not overwrite when the member first agreed.
+ */
+export function acceptConsent(policyKind: string, version: string): Promise<MemberAdmission> {
+  return request<MemberAdmission>("/admissions/me/consents", {
+    method: "POST",
+    body: { policyKind, version },
+  });
+}

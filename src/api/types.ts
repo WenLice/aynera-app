@@ -17,8 +17,14 @@ export type Gender = "Male" | "Female" | "Other" | "PreferNotToSay";
 /** Who the member wants to meet. `Everyone` is all three genders. */
 export type InterestedIn = "Male" | "Female" | "Other" | "Everyone";
 
-/** The API's IntentOutcome. The app's own ids are upper-case; these are the wire values. */
-export type IntentOutcomeCode = "Platonic" | "Spontaneous" | "Prospect" | "Legacy";
+/** The API's `RelationshipTrack` — the first half of the intent step. */
+export type TrackCode = "Fluid" | "Intent";
+
+/**
+ * The API's `RelationshipOutcome` — the child of a track. Platonic and Spontaneous belong to
+ * Fluid, Prospect and Legacy to Intent; sending a pair that disagrees is refused.
+ */
+export type OutcomeCode = "Platonic" | "Spontaneous" | "Prospect" | "Legacy";
 
 /** `GET /early-access/cities/GetAll` — the shared city catalog. */
 export type EarlyAccessCity = {
