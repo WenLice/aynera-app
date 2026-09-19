@@ -54,9 +54,16 @@ export const API_BASE_URL = (
   process.env.EXPO_PUBLIC_AYNERA_API_BASE_URL?.trim() || "http://localhost:5057"
 ).replace(/\/+$/, "");
 
-/** Where the published policy documents live. Same override pattern as the API URL. */
+/**
+ * Where the published policy documents live. Same override pattern as the API URL.
+ *
+ * **Temporary default.** The site is on Render while the production domain is set up; point
+ * `EXPO_PUBLIC_AYNERA_WEB_BASE_URL` at aynera.com once it serves the policy pages. The consent
+ * step's three links resolve against this, so a wrong value here is three dead links at the
+ * moment a member is asked to agree to something.
+ */
 export const WEB_BASE_URL = (
-  process.env.EXPO_PUBLIC_AYNERA_WEB_BASE_URL?.trim() || "https://aynera.com"
+  process.env.EXPO_PUBLIC_AYNERA_WEB_BASE_URL?.trim() || "https://aynera.onrender.com"
 ).replace(/\/+$/, "");
 
 /**
