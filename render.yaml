@@ -14,10 +14,10 @@ services:
     runtime: static
     plan: free
     branch: main
-    # NODE_ENV is set explicitly: without it `expo export` does not load .env.production at
-    # all, and the build silently falls back to the localhost API URL — an app that looks
-    # fine and cannot reach anything. Verified by building both ways.
-    buildCommand: npm ci && NODE_ENV=production npx expo export --platform web
+    # `expo export` forces NODE_ENV to production itself, so it loads .env.production without
+    # being told to. Setting NODE_ENV here would be noise, and the Expo docs recommend against
+    # using it to select env files at all.
+    buildCommand: npm ci && npx expo export --platform web
     staticPublishPath: ./dist
     routes:
       # Expo Router serves one HTML document and routes in the browser, so any unknown path
