@@ -57,7 +57,7 @@ export type GenderChoice = "" | Gender;
 export const GENDER_OPTIONS: { value: Exclude<GenderChoice, "">; label: string }[] = [
   { value: "Male", label: "Male" },
   { value: "Female", label: "Female" },
-  { value: "Other", label: "Third Gender / Transgender" },
+  { value: "ThirdGender", label: "Third Gender / Transgender" },
 ];
 
 export type ProfileDraft = {

@@ -668,9 +668,11 @@ export function ProfileSetupScreen({ navigation, route }: Props) {
       case "self":
         return draft.gender === "" ? "Pick the one that fits you" : null;
       case "birth":
-        return age === null
-          ? "A full birth date — you'll be shown as an age, never a date"
-          : null;
+        if (age === null)
+          return "A full birth date — you'll be shown as an age, never a date";
+        if (draft.hometown.trim().length < 2)
+          return "The place you're originally from";
+        return null;
       case "looking":
         return draft.lookingFor === ""
           ? "Choose who you're hoping to meet"
@@ -813,7 +815,7 @@ export function ProfileSetupScreen({ navigation, route }: Props) {
                 ? draft.nickname.trim()
                 : null,
             heightCm: draft.heightCm,
-            hometown: draft.hometown.trim() || null,
+            hometown: draft.hometown.trim(),
             work: draft.work.trim() || null,
           });
         });

@@ -48,9 +48,10 @@ export type ProfileBasics = {
   /** ISO date, `YYYY-MM-DD`. */
   dateOfBirth: string;
   city: string;
+  /** Required by the API: the member gives it on the birth step. */
+  hometown: string;
   nickname?: string | null;
   heightCm?: number | null;
-  hometown?: string | null;
   work?: string | null;
   religion?: string | null;
 };

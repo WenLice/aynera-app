@@ -9,13 +9,13 @@ export type ApiResponse<T> = {
 };
 
 /**
- * The API's `Gender` enum, by name. `Other` is its code for third gender / transgender;
+ * The API's `Gender` enum, by name. `ThirdGender` is stored exactly as it is shown;
  * `PreferNotToSay` is an explicit decline, deliberately distinct from it.
  */
-export type Gender = "Male" | "Female" | "Other" | "PreferNotToSay";
+export type Gender = "Male" | "Female" | "ThirdGender" | "PreferNotToSay";
 
 /** Who the member wants to meet. `Everyone` is all three genders. */
-export type InterestedIn = "Male" | "Female" | "Other" | "Everyone";
+export type InterestedIn = "Male" | "Female" | "ThirdGender" | "Everyone";
 
 /** The API's `RelationshipTrack` — the first half of the intent step. */
 export type TrackCode = "Fluid" | "Intent";

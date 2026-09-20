@@ -22,15 +22,15 @@ export const LOOKING_FOR: {
   { id: "Male", label: "Male", genders: ["Male"] },
   { id: "Female", label: "Female", genders: ["Female"] },
   {
-    id: "Other",
+    id: "ThirdGender",
     label: "Third Gender / Transgender",
-    genders: ["Other"],
+    genders: ["ThirdGender"],
   },
   {
     id: "Everyone",
     label: "Everyone",
     hint: "All three, equally",
-    genders: ["Male", "Female", "Other"],
+    genders: ["Male", "Female", "ThirdGender"],
   },
 ];
 
