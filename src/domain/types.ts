@@ -13,11 +13,6 @@ export type InterestedIn = "Male" | "Female" | "ThirdGender" | "Everyone";
  */
 export type IntentOutcome = "Platonic" | "Spontaneous" | "Prospect" | "Legacy";
 
-export type RelationshipPace =
-  | "SLOW_CLEAR"
-  | "STEADY"
-  | "READY_WHEN_RIGHT";
-
 /** Catalog city name as returned by the API (e.g. "Bangalore"); no longer a fixed union. */
 export type LaunchCity = string;
 

@@ -98,7 +98,6 @@ export type ProfileDraft = {
   /** Outcome of being here — one of the two children of `relationshipTrack`. */
   /** Id from `INTENT_OUTCOMES`, spelled as the API spells it. */
   intentOutcome: IntentOutcome | "";
-  paceId: string;
   /**
    * Whether the member has ticked the agreement on the consent step. Device-local, and not
    * re-read from the server on resume: the acceptance that counts is the row the API stores,
@@ -185,7 +184,6 @@ export const emptyDraft = (): ProfileDraft => ({
   chips: [],
   relationshipTrack: "",
   intentOutcome: "",
-  paceId: "",
   consented: false,
   ageMin: AGE_DEFAULT_MIN,
   ageMax: AGE_DEFAULT_MAX,

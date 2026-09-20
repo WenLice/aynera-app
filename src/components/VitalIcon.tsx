@@ -20,7 +20,6 @@ export type VitalIconId =
   | "family"
   | "child"
   | "intent"
-  | "pace"
   | "dot";
 
 type Props = {
@@ -151,13 +150,6 @@ export function VitalIcon({ id, size = 20, color = colors.brandPrimary }: Props)
         <>
           <Circle cx="10.8" cy="10.8" r="6.2" {...stroke} />
           <Path d="M15.4 15.4 20.4 20.4" {...stroke} />
-        </>
-      ) : null}
-
-      {id === "pace" ? (
-        <>
-          <Circle cx="12" cy="12" r="7.6" {...stroke} />
-          <Path d="M12 7.4V12l3.5 2.2" {...stroke} />
         </>
       ) : null}
 

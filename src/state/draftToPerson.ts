@@ -4,11 +4,7 @@ import {
   LIFESTYLE_QUESTIONS,
   formatHeight,
 } from "../data/lifestyleOptions";
-import {
-  INTENT_OUTCOMES,
-  PACE_OPTIONS,
-  interestedInLabel,
-} from "../data/profileOptions";
+import { INTENT_OUTCOMES, interestedInLabel } from "../data/profileOptions";
 import {
   ageFromBirth,
   publicIntroName,
@@ -34,9 +30,10 @@ const answered = (text: string) => text.trim().length > 2;
 export function draftToPerson(draft: ProfileDraft): PersonProfile | null {
   if (!draft.name || !draft.city) return null;
 
-  const pace = PACE_OPTIONS.find((p) => p.id === draft.paceId)?.label ?? "";
   const intent =
     INTENT_OUTCOMES.find((i) => i.id === draft.intentOutcome)?.label ?? "";
+  // The track the chosen outcome belongs to — shown under it, never chosen separately.
+  const track = draft.relationshipTrack;
   const photos = draft.photos.filter((p) => !!p.uri);
   /** First two sit on the front of the card; the rest open as beats below. */
   const heroPhotos = photos.slice(0, 2);
@@ -125,7 +122,6 @@ export function draftToPerson(draft: ProfileDraft): PersonProfile | null {
 
   const vitals: { label: string; value: string }[] = [];
   if (intent) vitals.push({ label: "Intent", value: intent });
-  if (pace) vitals.push({ label: "Pace", value: pace });
   const openTo = interestedInLabel(draft.lookingFor);
   if (openTo) vitals.push({ label: "Open to", value: openTo });
   if (draft.heightCm)
@@ -144,7 +140,7 @@ export function draftToPerson(draft: ProfileDraft): PersonProfile | null {
     work: draft.work.trim(),
     lookingFor: openTo,
     intent,
-    pace,
+    track,
     reason: "",
     verified: draft.submitted,
     heroPhotos: heroPhotos.map((photo, i) => ({

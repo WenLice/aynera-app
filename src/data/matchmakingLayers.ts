@@ -16,7 +16,7 @@ export const MATCHMAKING_LAYERS = {
       "lookingFor",
       "chips",
       "intent",
-      "pace",
+      "track",
       "photos×5",
       "video×1",
       "prompts×3",

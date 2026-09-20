@@ -66,7 +66,7 @@ export function readVitals(person: PersonProfile) {
       key: "Intent",
       icon: "intent",
       value: person.intent,
-      sub: person.pace || undefined,
+      sub: person.track || undefined,
     });
   }
 

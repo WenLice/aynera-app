@@ -2,7 +2,6 @@ import type { Gender } from "../api/types";
 import type {
   IntentOutcome,
   InterestedIn,
-  RelationshipPace,
   RelationshipTrack,
 } from "../domain/types";
 
@@ -236,28 +235,6 @@ export const TRACK_OPTIONS: {
 
 export const outcomesForTrack = (track: RelationshipTrack) =>
   INTENT_OUTCOMES.filter((option) => option.track === track);
-
-export const PACE_OPTIONS: {
-  id: RelationshipPace;
-  label: string;
-  hint: string;
-}[] = [
-  {
-    id: "SLOW_CLEAR",
-    label: "Slow & clear",
-    hint: "No rush .. clarity first",
-  },
-  {
-    id: "STEADY",
-    label: "Steady",
-    hint: "Regular conversation .. real plans",
-  },
-  {
-    id: "READY_WHEN_RIGHT",
-    label: "Ready when it feels right",
-    hint: "Open to momentum when it feels mutual",
-  },
-];
 
 export const RHYTHM = {
   socialEnergy: ["Quiet recharge", "Balanced", "Social spark"],

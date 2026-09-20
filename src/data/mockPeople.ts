@@ -48,8 +48,10 @@ export type PersonProfile = {
   /** What they do — the most-read line after the name. */
   work: string;
   lookingFor: string;
+  /** The outcome they chose — `Platonic`, `Spontaneous`, `Prospect` or `Legacy`. */
   intent: string;
-  pace: string;
+  /** The track that outcome belongs to: `Fluid` or `Intent`. Shown under the outcome. */
+  track: string;
   /** Curator note, viewer side only. */
   reason: string;
   /** Up to three plain-language reasons. */
@@ -83,10 +85,10 @@ export const MOCK_PEOPLE: PersonProfile[] = [
     work: "Product designer",
     lookingFor: "Male",
     intent: "Legacy",
-    pace: "Slow & clear",
-    reason: "Similar pace .. shared love of quieter weekends",
+    track: "Intent",
+    reason: "Same thing in mind .. shared love of quieter weekends",
     whyReasons: [
-      "Similar pace",
+      "Looking for the same thing",
       "Both prefer smaller social settings",
       "Shared love of photography",
     ],
@@ -107,7 +109,6 @@ export const MOCK_PEOPLE: PersonProfile[] = [
     signature: "I’d rather be early to the gallery than fashionably late anywhere.",
     vitals: [
       { label: "Intent", value: "Legacy" },
-      { label: "Pace", value: "Slow & clear" },
       { label: "Open to", value: "Male" },
       { label: "Height", value: "5' 4\"" },
       { label: "From", value: "Kochi" },
@@ -188,9 +189,9 @@ export const MOCK_PEOPLE: PersonProfile[] = [
     work: "Product manager",
     lookingFor: "Female",
     intent: "Spontaneous",
-    pace: "Steady",
+    track: "Fluid",
     reason: "Similar follow-through .. shared love of cooking",
-    whyReasons: ["Similar pace", "Shared love of cooking", "Both like live music"],
+    whyReasons: ["Open to the same kind of thing", "Shared love of cooking", "Both like live music"],
     verified: true,
     heroPhotos: [
       {
@@ -208,7 +209,6 @@ export const MOCK_PEOPLE: PersonProfile[] = [
     signature: "I remember small things and quietly build around them.",
     vitals: [
       { label: "Intent", value: "Spontaneous" },
-      { label: "Pace", value: "Steady" },
       { label: "Open to", value: "Female" },
       { label: "Height", value: "5' 11\"" },
       { label: "From", value: "Lucknow" },
@@ -281,7 +281,7 @@ export const MOCK_PEOPLE: PersonProfile[] = [
     work: "Architect",
     lookingFor: "Everyone",
     intent: "Prospect",
-    pace: "Ready when it feels right",
+    track: "Intent",
     reason: "Both prefer smaller social settings .. shared love of tea",
     whyReasons: [
       "Both prefer smaller social settings",
@@ -305,7 +305,6 @@ export const MOCK_PEOPLE: PersonProfile[] = [
     signature: "I design rooms for light and people for calm.",
     vitals: [
       { label: "Intent", value: "Prospect" },
-      { label: "Pace", value: "Ready when it feels right" },
       { label: "Open to", value: "Everyone" },
       { label: "Height", value: "5' 6\"" },
       { label: "From", value: "Bangalore" },
@@ -378,7 +377,7 @@ export const MOCK_PEOPLE: PersonProfile[] = [
     work: "Engineer",
     lookingFor: "Female",
     intent: "Prospect",
-    pace: "Steady",
+    track: "Intent",
     reason: "Shared love of coffee .. both like long walks",
     whyReasons: ["Shared love of coffee", "Both like long walks"],
     verified: true,
@@ -398,7 +397,6 @@ export const MOCK_PEOPLE: PersonProfile[] = [
     signature: "I show up on time and stay for the hard part.",
     vitals: [
       { label: "Intent", value: "Prospect" },
-      { label: "Pace", value: "Steady" },
       { label: "Open to", value: "Female" },
       { label: "Height", value: "6' 0\"" },
       { label: "From", value: "Nagpur" },
