@@ -1,0 +1,38 @@
+# Render blueprint for the Aynera app's web build.
+#
+# A static site: `expo export --platform web` produces dist/, which Render serves directly.
+# This is the same source as the native app — Expo's web target — so what is deployed here
+# is the real registration flow, not a separate demo.
+#
+# `main` is the release branch: day-to-day work happens on `dev` and is merged here when it
+# should go live. The API and web URLs are baked in at build time from .env.production; to
+# point a deployment somewhere else, set EXPO_PUBLIC_AYNERA_API_BASE_URL in the dashboard,
+# which overrides the committed default.
+services:
+  - type: web
+    name: aynera-app
+    runtime: static
+    plan: free
+    branch: main
+    # NODE_ENV is set explicitly: without it `expo export` does not load .env.production at
+    # all, and the build silently falls back to the localhost API URL — an app that looks
+    # fine and cannot reach anything. Verified by building both ways.
+    buildCommand: npm ci && NODE_ENV=production npx expo export --platform web
+    staticPublishPath: ./dist
+    routes:
+      # Expo Router serves one HTML document and routes in the browser, so any unknown path
+      # must return index.html rather than a 404 — otherwise a refresh mid-registration, or a
+      # pasted link, drops the member on an error page.
+      - type: rewrite
+        source: /*
+        destination: /index.html
+    headers:
+      - path: /*
+        name: X-Frame-Options
+        value: DENY
+      - path: /*
+        name: X-Content-Type-Options
+        value: nosniff
+      - path: /*
+        name: Referrer-Policy
+        value: same-origin
