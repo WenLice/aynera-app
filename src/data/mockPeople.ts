@@ -62,7 +62,7 @@ export type PersonProfile = {
   /** One line in their own voice, sitting under the name. */
   signature: string;
   vitals: { label: string; value: string }[];
-  taste: string[];
+  vibe: string[];
   rhythm: string[];
   beats: StoryBeat[];
 };
@@ -118,7 +118,7 @@ export const MOCK_PEOPLE: PersonProfile[] = [
       { label: "Faith", value: "Spiritual, not ritual" },
       { label: "Children", value: "Want them" },
     ],
-    taste: [
+    vibe: [
       "Reading",
       "Café hopping",
       "Photography",
@@ -218,7 +218,7 @@ export const MOCK_PEOPLE: PersonProfile[] = [
       { label: "Faith", value: "Not religious" },
       { label: "Family", value: "Consulted, not deciding" },
     ],
-    taste: ["Running", "Live music", "Cooking", "Reading non-fiction", "Host dinners"],
+    vibe: ["Running", "Live music", "Cooking", "Reading non-fiction", "Host dinners"],
     rhythm: ["Social spark", "Out exploring", "Close & present"],
     beats: [
       {
@@ -314,7 +314,7 @@ export const MOCK_PEOPLE: PersonProfile[] = [
       { label: "Faith", value: "Spiritual, not ritual" },
       { label: "Children", value: "Open to them" },
     ],
-    taste: ["Museums", "Market mornings", "Tea person", "Quiet weekends", "Journaling"],
+    vibe: ["Museums", "Market mornings", "Tea person", "Quiet weekends", "Journaling"],
     rhythm: ["Quiet recharge", "Home & soft plans", "Warm but independent"],
     beats: [
       {
@@ -406,7 +406,7 @@ export const MOCK_PEOPLE: PersonProfile[] = [
       { label: "Faith", value: "Culturally, not religiously" },
       { label: "Children", value: "Open to them" },
     ],
-    taste: ["Hiking", "Board games", "Coffee person", "Side projects", "Park picnics"],
+    vibe: ["Hiking", "Board games", "Coffee person", "Side projects", "Park picnics"],
     rhythm: ["Balanced", "Mix of both", "Figuring it out"],
     beats: [
       {

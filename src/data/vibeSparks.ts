@@ -1,9 +1,9 @@
 /**
- * Taste sparks — the playful reward that pops up when a chip is tapped.
+ * Vibe sparks — the playful reward that pops up when a chip is tapped.
  * First line is the emoji; the rest is the beat, line breaks intentional.
  */
 
-export const TASTE_SPARKS: Record<string, string> = {
+export const VIBE_SPARKS: Record<string, string> = {
   // Hobbies
   Reading:
     "📚\nYou don't just read books.\n\nYou casually let fictional people\nraise your standards.\n\nAnd somehow...\nyou're okay with that. 😭",
@@ -208,7 +208,7 @@ export const TASTE_SPARKS: Record<string, string> = {
 const FALLBACK = "✨\nThis one says something about you.\n\nWe noticed. 🤍";
 
 export function sparkForChip(option: string): string {
-  return TASTE_SPARKS[option] ?? FALLBACK;
+  return VIBE_SPARKS[option] ?? FALLBACK;
 }
 
 /** Emoji headline + body, split for layout. */

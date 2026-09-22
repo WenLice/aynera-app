@@ -9,7 +9,7 @@ export type FieldLayer = "create" | "prefs" | "soft" | "ops";
 export const MATCHMAKING_LAYERS = {
   create: {
     title: "Create — join the cohort",
-    purpose: "Trust, taste, and voice for review + Meet card",
+    purpose: "Trust, vibe, and voice for review + Meet card",
     fields: [
       "name",
       "city",
@@ -63,7 +63,7 @@ export const AGE_PREFS = [
 export const CREATE_CHAPTERS = [
   { id: "arrive", act: "Arrive", vibe: "This isn’t a form. It’s how you’ll be introduced." },
   { id: "you", act: "You", vibe: "Start with the simplest truth." },
-  { id: "taste", act: "Vibe", vibe: "Pick what feels like your real life — not a résumé." },
+  { id: "vibe", act: "Vibe", vibe: "Pick what feels like your real life — not a résumé." },
   { id: "intent", act: "Intent", vibe: "Clarity is attractive. Ambiguity is exhausting." },
   { id: "match", act: "Match notes", vibe: "A few hard lines so introductions stay respectful." },
   { id: "presence", act: "Presence", vibe: "Show your face. Then your world. Then your voice." },

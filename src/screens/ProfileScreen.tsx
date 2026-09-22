@@ -154,7 +154,7 @@ export function ProfileScreen() {
               </View>
 
                 {draft.chips.length ? (
-                  <View style={styles.tasteBlock}>
+                  <View style={styles.vibeBlock}>
                     <AppText variant="label" tone="plum">
                       Your Vibe
                     </AppText>
@@ -173,7 +173,7 @@ export function ProfileScreen() {
               <ProfileStory
                 person={person}
                 mode="self"
-                viewerTaste={draft.chips}
+                viewerVibe={draft.chips}
                 onEdit={(target) => editTo(target)}
               />
             </>
@@ -230,7 +230,7 @@ const styles = StyleSheet.create({
     flexWrap: "wrap",
     flexDirection: "row",
   },
-  tasteBlock: {
+  vibeBlock: {
     marginHorizontal: spacing.xl,
     marginBottom: spacing.base,
     gap: spacing.sm,

@@ -83,8 +83,8 @@ export const colors = {
 
   /* section washes — kept extremely soft so nothing reads as a second product */
   whyIntroSoft: "#F7ECE7",
-  tasteSoft: "#F3E9EE",
-  tasteSoftBorder: "#E3D7DF",
+  vibeSoft: "#F3E9EE",
+  vibeSoftBorder: "#E3D7DF",
   duosSoft: "#F2E9EF",
   squadsSoft: "#F8E9E1",
   threadsBackground: "#FAF8F7",

@@ -66,7 +66,7 @@ export function profileCompletion(draft: ProfileDraft): ProfileCompletion {
   if (answeredCount(draft.lifestyle) < 2)
     next.push({ label: "Fill in your everyday", target: "everyday" });
   if (draft.chips.length < MIN_CHIPS + 4)
-    next.push({ label: "Add another Vibe", target: "taste" });
+    next.push({ label: "Add another Vibe", target: "vibe" });
   if (answers < OPTIONAL_PROMPT_MAX)
     next.push({ label: "Answer one more prompt", target: "voice" });
   if (!draft.video.uri)

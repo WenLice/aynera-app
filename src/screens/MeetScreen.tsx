@@ -29,7 +29,7 @@ import { RejectShatterMark } from "../components/RejectShatterMark";
 import { RespondSheet } from "../components/RespondSheet";
 import { SafetySheet } from "../components/SafetySheet";
 import { Sheet } from "../components/Sheet";
-import { TasteGatheringCard } from "../components/TasteGatheringCard";
+import { VibeGatheringCard } from "../components/VibeGatheringCard";
 import { isFoundingCity } from "../data/cities";
 import type { PersonProfile } from "../data/mockPeople";
 import type { RootStackParamList } from "../navigation/types";
@@ -95,7 +95,7 @@ export function MeetScreen() {
   const khatRemaining = useSyncExternalStore(subscribeKhat, getKhatRemaining);
   const guideSeen = useSyncExternalStore(subscribeMeetGuide, hasSeenMeetGuide);
   const myDraft = useSyncExternalStore(subscribeProfileDraft, getProfileDraft);
-  const myTaste = myDraft.chips;
+  const myVibe = myDraft.chips;
   const founding = isFoundingCity(myDraft.city);
 
   const letter = useRef(new Animated.Value(0)).current;
@@ -338,7 +338,7 @@ export function MeetScreen() {
                   Weekend Surprise
                 </AppText>
                 {weekendSurprises.map((g) => (
-                  <TasteGatheringCard
+                  <VibeGatheringCard
                     key={g.id}
                     gathering={g}
                     interested={isInterested(g.id)}
@@ -356,7 +356,7 @@ export function MeetScreen() {
                   Squads
                 </AppText>
                 {squads.map((g) => (
-                  <TasteGatheringCard
+                  <VibeGatheringCard
                     key={g.id}
                     gathering={g}
                     interested={isInterested(g.id)}
@@ -510,7 +510,7 @@ export function MeetScreen() {
                     ? undefined
                     : (m) => setMoment(m)
                 }
-                viewerTaste={myTaste}
+                viewerVibe={myVibe}
                 onReviewPress={() => setReviewOpen(true)}
               />
             </ScrollView>

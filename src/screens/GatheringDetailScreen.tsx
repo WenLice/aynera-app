@@ -32,7 +32,7 @@ export function GatheringDetailScreen({ navigation, route }: Props) {
   const attended = gathering ? isAttended(gathering.id) : false;
 
   useEffect(() => {
-    if (gathering) track("taste_gathering_viewed", { id: gathering.id });
+    if (gathering) track("vibe_gathering_viewed", { id: gathering.id });
   }, [gathering?.id]);
 
   if (!gathering) {
@@ -78,7 +78,7 @@ export function GatheringDetailScreen({ navigation, route }: Props) {
 
           <Block title="Vibe behind this gathering">
             <AppText variant="body" tone="soft">
-              {gathering.tasteTags.join(" .. ")}
+              {gathering.vibeTags.join(" .. ")}
             </AppText>
           </Block>
 
@@ -136,7 +136,7 @@ export function GatheringDetailScreen({ navigation, route }: Props) {
               }
               onPress={() => {
                 markInterested(gathering.id);
-                track("taste_gathering_interest", { id: gathering.id });
+                track("vibe_gathering_interest", { id: gathering.id });
               }}
             />
           )}

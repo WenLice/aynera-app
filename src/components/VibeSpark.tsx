@@ -9,7 +9,7 @@ import {
   View,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
-import { splitSpark } from "../data/tasteSparks";
+import { splitSpark } from "../data/vibeSparks";
 import { colors, fonts, spacing, typography } from "../theme";
 
 type Props = {
@@ -38,10 +38,10 @@ type Card = {
 };
 
 /**
- * Taste sparks arrive like messages: they slide in from one edge and leave
+ * Vibe sparks arrive like messages: they slide in from one edge and leave
  * the same way before the next one lands, alternating sides as they go.
  */
-export function TasteSpark({ chip, spark, sparkKey, note, onDismiss }: Props) {
+export function VibeSpark({ chip, spark, sparkKey, note, onDismiss }: Props) {
   const [card, setCard] = useState<Card | null>(null);
   /** 0 = seated, 1 = offscreen on the card's own side. */
   const slide = useRef(new Animated.Value(1)).current;
@@ -51,7 +51,7 @@ export function TasteSpark({ chip, spark, sparkKey, note, onDismiss }: Props) {
   /**
    * Arrivals so far this mount. Even = right, odd = left, so the first
    * spark of the screen comes from the right and it resets when the
-   * taste step unmounts.
+   * vibe step unmounts.
    */
   const arrivals = useRef(0);
 

@@ -30,7 +30,7 @@ import { Button } from "../components/Button";
 import { ChapterShell } from "../components/ChapterShell";
 import { ChipSelect } from "../components/ChipSelect";
 import { Sheet } from "../components/Sheet";
-import { TasteSpark } from "../components/TasteSpark";
+import { VibeSpark } from "../components/VibeSpark";
 import { LivenessCheck } from "../components/LivenessCheck";
 import type { EditTarget } from "../components/ProfileStory";
 import {
@@ -70,7 +70,7 @@ import {
   formatHeight,
 } from "../data/lifestyleOptions";
 import { VIBE_MOMENTS } from "../data/vibeMoments";
-import { sparkForChip } from "../data/tasteSparks";
+import { sparkForChip } from "../data/vibeSparks";
 import type { RootStackParamList } from "../navigation/types";
 import {
   ageFromBirth,
@@ -147,7 +147,7 @@ type StepId =
   | "life"
   | "looking"
   | "momentConnect"
-  | "taste"
+  | "vibe"
   | "intent"
   | "lifestyle"
   | "beliefs"
@@ -178,7 +178,7 @@ const REQUIRED_FLOW: StepId[] = [
   "intent",
   "lifestyle",
   "beliefs",
-  "taste",
+  "vibe",
   "photos",
   "video",
   "voicePick",
@@ -295,7 +295,7 @@ const META: Record<
     tone: "paper",
     cta: "Continue",
   },
-  taste: {
+  vibe: {
     act: "Vibe",
     vibe: "Pick what feels like your real life — not a résumé.",
     tone: "rose",
@@ -375,7 +375,7 @@ const EDIT_ENTRY: Record<EditTarget, StepId> = {
   everyday: "lifestyle",
   voice: "voiceAnswer",
   story: "dealbreaker",
-  taste: "taste",
+  vibe: "vibe",
   intent: "intent",
   video: "video",
   rhythm: "rhythm",
@@ -383,7 +383,7 @@ const EDIT_ENTRY: Record<EditTarget, StepId> = {
 
 function flowFor(startAt?: EditTarget): StepId[] {
   if (!startAt) return REQUIRED_FLOW;
-  if (startAt === "taste") return ["taste"];
+  if (startAt === "vibe") return ["vibe"];
   if (startAt === "voice") return ["voicePick", "voiceAnswer"];
   if (startAt === "everyday") return ["lifestyle", "beliefs"];
   return [EDIT_ENTRY[startAt]];
@@ -398,8 +398,8 @@ export function ProfileSetupScreen({ navigation, route }: Props) {
     const saved = getProfileDraft();
     return saved.name ? saved : emptyDraft();
   });
-  const [tasteIndex, setTasteIndex] = useState(0);
-  const [tasteSummary, setTasteSummary] = useState(false);
+  const [vibeIndex, setVibeIndex] = useState(0);
+  const [vibeSummary, setVibeSummary] = useState(false);
   const [encourage, setEncourage] = useState("");
   const [exitOpen, setExitOpen] = useState(false);
   const [spark, setSpark] = useState({ chip: "", text: "", key: 0 });
@@ -512,7 +512,7 @@ export function ProfileSetupScreen({ navigation, route }: Props) {
   const step = FLOW[index];
   const meta = META[step];
   const progress = (index + 1) / FLOW.length;
-  const group = CHIP_GROUPS[tasteIndex];
+  const group = CHIP_GROUPS[vibeIndex];
 
   const photoCount = draft.photos.filter((p) => !!p.uri).length;
   const verified = !!draft.verification.uri;
@@ -587,7 +587,7 @@ export function ProfileSetupScreen({ navigation, route }: Props) {
       scrollRef.current?.scrollTo({ y: 0, animated: false });
     });
     return () => cancelAnimationFrame(id);
-  }, [step, tasteIndex, tasteSummary]);
+  }, [step, vibeIndex, vibeSummary]);
 
   const toggleChip = (option: string) => {
     const on = draft.chips.includes(option);
@@ -681,8 +681,8 @@ export function ProfileSetupScreen({ navigation, route }: Props) {
         if (draft.city === "") return "Pick the city you're actually in";
         if (draft.work.trim().length < 2) return "A few words about what you do with your days";
         return null;
-      case "taste":
-        if (tasteIndex < CHIP_GROUPS.length - 1) return null;
+      case "vibe":
+        if (vibeIndex < CHIP_GROUPS.length - 1) return null;
         return draft.chips.length < MIN_CHIPS
           ? `${MIN_CHIPS - draft.chips.length} more picks and your vibe starts to have a shape`
           : null;
@@ -720,7 +720,7 @@ export function ProfileSetupScreen({ navigation, route }: Props) {
     photoCount,
     smsCode,
     step,
-    tasteIndex,
+    vibeIndex,
     verified,
   ]);
 
@@ -881,15 +881,15 @@ export function ProfileSetupScreen({ navigation, route }: Props) {
     if (step === "notifications") patch({ notificationsOn: true });
     if (step === "self" && draft.heightCm === null)
       patch({ heightCm: HEIGHT_DEFAULT_CM });
-    if (step === "taste" && !tasteSummary) {
-      // Always walk every taste category before the summary.
-      if (tasteIndex < CHIP_GROUPS.length - 1) {
-        setTasteIndex((v) => v + 1);
+    if (step === "vibe" && !vibeSummary) {
+      // Always walk every vibe category before the summary.
+      if (vibeIndex < CHIP_GROUPS.length - 1) {
+        setVibeIndex((v) => v + 1);
         setEncourage("");
         return;
       }
       if (draft.chips.length < MIN_CHIPS) return;
-      setTasteSummary(true);
+      setVibeSummary(true);
       return;
     }
     if (editing && index >= FLOW.length - 1) {
@@ -909,12 +909,12 @@ export function ProfileSetupScreen({ navigation, route }: Props) {
     dismissSpark();
     setResent("");
     setStepError(null);
-    if (tasteSummary) {
-      setTasteSummary(false);
+    if (vibeSummary) {
+      setVibeSummary(false);
       return;
     }
-    if (step === "taste" && tasteIndex > 0) {
-      setTasteIndex((v) => v - 1);
+    if (step === "vibe" && vibeIndex > 0) {
+      setVibeIndex((v) => v - 1);
       setEncourage("");
       return;
     }
@@ -925,13 +925,13 @@ export function ProfileSetupScreen({ navigation, route }: Props) {
     setIndex((v) => Math.max(v - 1, 0));
   };
 
-  const tasteCta = tasteSummary
+  const vibeCta = vibeSummary
     ? "That's my vibe"
-    : editing && step !== "taste"
+    : editing && step !== "vibe"
       ? "Save & preview"
-      : step === "taste" && tasteIndex < CHIP_GROUPS.length - 1
+      : step === "vibe" && vibeIndex < CHIP_GROUPS.length - 1
         ? "Next vibe"
-        : step === "taste"
+        : step === "vibe"
           ? "This is my vibe"
           : meta.cta;
 
@@ -959,20 +959,20 @@ export function ProfileSetupScreen({ navigation, route }: Props) {
   return (
     <ChapterShell
       act={
-        step === "taste"
-          ? `Vibe · ${tasteIndex + 1}/${CHIP_GROUPS.length}`
+        step === "vibe"
+          ? `Vibe · ${vibeIndex + 1}/${CHIP_GROUPS.length}`
           : `${meta.act} · ${index + 1}/${FLOW.length}`
       }
       vibe={
-        tasteSummary
+        vibeSummary
           ? "Your Vibe"
-          : step === "taste"
+          : step === "vibe"
             ? group.title
             : meta.vibe
       }
       progress={progress}
       tone={meta.tone}
-      primaryLabel={busy ? "One moment…" : tasteCta}
+      primaryLabel={busy ? "One moment…" : vibeCta}
       primaryDisabled={primaryDisabled}
       disabledReason={busy ? undefined : (missing ?? undefined)}
       onPrimary={goNext}
@@ -1060,6 +1060,13 @@ export function ProfileSetupScreen({ navigation, route }: Props) {
           <View style={styles.block}>
             <AppText variant="meta" tone="muted" center>
               Sent to +91 {draft.phone}
+            </AppText>
+            {/* The code can arrive as an automated call instead of a text: Indian carriers
+                block A2P SMS that is not sent under a DLT-linked template, and the provider
+                completes the delivery by voice. Say so here rather than leave a member
+                staring at an empty inbox. Nothing changes when SMS starts working. */}
+            <AppText variant="meta" tone="muted" center>
+              It may arrive as a call rather than a text — answer it and the code is read out.
             </AppText>
             <CodeInput
               value={smsCode}
@@ -1472,9 +1479,9 @@ export function ProfileSetupScreen({ navigation, route }: Props) {
             <PrivacyHint text="Never shown to anyone else" />
           </View>
         )}
-        {step === "taste" && (
+        {step === "vibe" && (
           <View style={styles.block}>
-            {tasteSummary ? (
+            {vibeSummary ? (
               <>
                 <Text style={styles.fieldLabel}>Your Vibe</Text>
                 <AppText variant="title">A little context around how you live</AppText>
@@ -1491,8 +1498,8 @@ export function ProfileSetupScreen({ navigation, route }: Props) {
               </>
             ) : (
               <>
-            <View style={styles.tasteHead}>
-              <Text style={styles.tasteSub}>{group.subtitle}</Text>
+            <View style={styles.vibeHead}>
+              <Text style={styles.vibeSub}>{group.subtitle}</Text>
               <View
                 style={[
                   styles.countPill,
@@ -1793,8 +1800,8 @@ export function ProfileSetupScreen({ navigation, route }: Props) {
         {step === "reveal" && <Reveal draft={draft} />}
       </ScrollView>
 
-      {step === "taste" ? (
-        <TasteSpark
+      {step === "vibe" ? (
+        <VibeSpark
           chip={spark.chip}
           spark={spark.text}
           sparkKey={spark.key}
@@ -2387,12 +2394,12 @@ const styles = StyleSheet.create({
     fontSize: typography.size.sm,
     lineHeight: 18,
   },
-  tasteHead: {
+  vibeHead: {
     flexDirection: "row",
     alignItems: "center",
     gap: spacing.sm,
   },
-  tasteSub: {
+  vibeSub: {
     flex: 1,
     color: colors.textSecondary,
     fontSize: typography.size.base,

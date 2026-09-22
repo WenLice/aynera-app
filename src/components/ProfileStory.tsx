@@ -41,7 +41,7 @@ export type EditTarget =
   | "everyday"
   | "voice"
   | "story"
-  | "taste"
+  | "vibe"
   | "intent"
   | "video"
   | "rhythm";
@@ -50,8 +50,8 @@ type Props = {
   person: PersonProfile;
   mode: "meet" | "self";
   onRespond?: (moment: MomentTarget) => void;
-  /** Viewer's own taste, used to surface overlaps. */
-  viewerTaste?: string[];
+  /** Viewer's own vibe, used to surface overlaps. */
+  viewerVibe?: string[];
   /** Self mode only — makes sections tappable to edit. */
   onEdit?: (target: EditTarget) => void;
   onReviewPress?: () => void;
@@ -64,7 +64,7 @@ export function ProfileStory({
   person,
   mode,
   onRespond,
-  viewerTaste,
+  viewerVibe,
   onEdit,
   onReviewPress,
 }: Props) {
@@ -132,7 +132,7 @@ export function ProfileStory({
         <About
           person={person}
           later={later}
-          viewerTaste={viewerTaste}
+          viewerVibe={viewerVibe}
           onEdit={onEdit}
           canRespond={canRespond}
           onRespond={onRespond}
@@ -414,24 +414,24 @@ function InlineVideo({ uri, caption }: { uri: string; caption?: string }) {
 function About({
   person,
   later,
-  viewerTaste,
+  viewerVibe,
   onEdit,
   canRespond,
   onRespond,
 }: {
   person: PersonProfile;
   later: VitalRow[];
-  viewerTaste?: string[];
+  viewerVibe?: string[];
   onEdit?: (target: EditTarget) => void;
   canRespond?: boolean;
   onRespond?: (moment: MomentTarget) => void;
 }) {
-  const shared = viewerTaste
-    ? person.taste.filter((t) => viewerTaste.includes(t))
+  const shared = viewerVibe
+    ? person.vibe.filter((t) => viewerVibe.includes(t))
     : [];
-  const rest = person.taste.filter((t) => !shared.includes(t));
+  const rest = person.vibe.filter((t) => !shared.includes(t));
 
-  if (!later.length && !person.taste.length && !person.rhythm.length) {
+  if (!later.length && !person.vibe.length && !person.rhythm.length) {
     return null;
   }
 
@@ -456,7 +456,7 @@ function About({
               <RespondMark
                 onPress={() =>
                   onRespond?.({
-                    blockId: "shared-taste",
+                    blockId: "shared-vibe",
                     kind: "prompt",
                     title: shared.slice(0, 2).join(" · "),
                   })
@@ -469,7 +469,7 @@ function About({
       ) : null}
 
       {rest.length ? (
-        <View style={styles.tasteBlock}>
+        <View style={styles.vibeBlock}>
           <Text style={styles.aboutTitle}>{onEdit ? "Your vibe" : "Their vibe"}</Text>
           <View style={styles.chips}>
             {rest.map((chip) => (
@@ -479,7 +479,7 @@ function About({
             ))}
           </View>
           {onEdit ? (
-            <EditChip label="Edit" onPress={() => onEdit("taste")} inline />
+            <EditChip label="Edit" onPress={() => onEdit("vibe")} inline />
           ) : null}
         </View>
       ) : null}
@@ -804,7 +804,7 @@ const styles = StyleSheet.create({
     fontFamily: fonts.bodySemi,
     fontSize: typography.size.lg,
   },
-  tasteBlock: {
+  vibeBlock: {
     gap: spacing.md,
   },
   chips: {
@@ -821,8 +821,8 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surfacePrimary,
   },
   chipShared: {
-    borderColor: colors.tasteSoftBorder,
-    backgroundColor: colors.tasteSoft,
+    borderColor: colors.vibeSoftBorder,
+    backgroundColor: colors.vibeSoft,
   },
   chipText: {
     color: colors.textPrimary,

@@ -1,4 +1,4 @@
-import { TASTE_GATHERINGS, type TasteGathering } from "../data/gatherings";
+import { VIBE_GATHERINGS, type VibeGathering } from "../data/gatherings";
 
 let interested = new Set<string>();
 let attended = new Set<string>();
@@ -14,12 +14,12 @@ export function subscribeGatherings(listener: () => void) {
   return () => listeners.delete(listener);
 }
 
-export function getGatherings(): TasteGathering[] {
-  return TASTE_GATHERINGS;
+export function getGatherings(): VibeGathering[] {
+  return VIBE_GATHERINGS;
 }
 
 export function getGathering(id: string) {
-  return TASTE_GATHERINGS.find((g) => g.id === id) ?? null;
+  return VIBE_GATHERINGS.find((g) => g.id === id) ?? null;
 }
 
 export function isInterested(id: string) {

@@ -1,18 +1,18 @@
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import {
   gatheringKindLabel,
-  type TasteGathering,
+  type VibeGathering,
 } from "../data/gatherings";
 import { colors, fonts, radius, spacing, typography } from "../theme";
 import { AppText } from "./AppText";
 
 type Props = {
-  gathering: TasteGathering;
+  gathering: VibeGathering;
   interested?: boolean;
   onPress?: () => void;
 };
 
-export function TasteGatheringCard({
+export function VibeGatheringCard({
   gathering,
   interested,
   onPress,

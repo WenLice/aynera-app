@@ -108,7 +108,7 @@ export function draftToPerson(draft: ProfileDraft): PersonProfile | null {
     });
   }
 
-  /** Closes the scroll on an image, right before the taste section. */
+  /** Closes the scroll on an image, right before the vibe section. */
   if (lastPhoto) {
     beats.push({
       kind: "photo",
@@ -151,7 +151,7 @@ export function draftToPerson(draft: ProfileDraft): PersonProfile | null {
     })),
     signature,
     vitals,
-    taste: draft.chips.slice(0, 12),
+    vibe: draft.chips.slice(0, 12),
     rhythm: [draft.socialEnergy, draft.weekends, draft.family].filter(Boolean),
     beats,
   };

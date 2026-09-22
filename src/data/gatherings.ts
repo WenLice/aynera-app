@@ -2,7 +2,7 @@ import type { GatheringStatus, LaunchCity } from "../domain/types";
 
 export type GatheringKind = "squad" | "weekend_surprise";
 
-export type TasteGathering = {
+export type VibeGathering = {
   id: string;
   kind: GatheringKind;
   title: string;
@@ -15,7 +15,7 @@ export type TasteGathering = {
   spotsLeft?: number;
   hostName?: string;
   venueName?: string;
-  tasteTags: string[];
+  vibeTags: string[];
   reasonForUser: string[];
   expect: string[];
   hostRules: string[];
@@ -25,13 +25,13 @@ export type TasteGathering = {
   attendeeIds?: string[];
 };
 
-export function gatheringKindLabel(gathering: Pick<TasteGathering, "kind">) {
+export function gatheringKindLabel(gathering: Pick<VibeGathering, "kind">) {
   return gathering.kind === "weekend_surprise"
     ? "Weekend Surprise"
     : "Squad gathering";
 }
 
-export const TASTE_GATHERINGS: TasteGathering[] = [
+export const VIBE_GATHERINGS: VibeGathering[] = [
   {
     id: "g-market-walk",
     kind: "weekend_surprise",
@@ -45,7 +45,7 @@ export const TASTE_GATHERINGS: TasteGathering[] = [
     groupSizeLabel: "Small group",
     spotsLeft: 4,
     venueName: "Partner venue · Basavanagudi",
-    tasteTags: ["Market evenings", "Gandhi Bazaar", "Tea person"],
+    vibeTags: ["Market evenings", "Gandhi Bazaar", "Tea person"],
     reasonForUser: ["Market mornings", "Tea person", "Walking"],
     expect: [
       "A small Sunday evening in public space",
@@ -79,7 +79,7 @@ export const TASTE_GATHERINGS: TasteGathering[] = [
     groupSizeLabel: "Small group",
     hostName: "Community host",
     venueName: "A public café and adjoining bookshop",
-    tasteTags: ["Reading", "Café hopping", "Quiet weekends"],
+    vibeTags: ["Reading", "Café hopping", "Quiet weekends"],
     reasonForUser: ["Reading", "Café hopping", "Quieter social energy"],
     expect: [
       "Arrive, get a drink, sit with two or three people at a time",
