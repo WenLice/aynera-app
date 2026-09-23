@@ -10,6 +10,7 @@ import {
   publicIntroName,
   publishedVitals,
   realFirstName,
+  GENDER_OPTIONS,
   type ProfileDraft,
 } from "./profileDraft";
 import { colors } from "../theme";
@@ -123,7 +124,10 @@ export function draftToPerson(draft: ProfileDraft): PersonProfile | null {
   const vitals: { label: string; value: string }[] = [];
   if (intent) vitals.push({ label: "Intent", value: intent });
   const openTo = interestedInLabel(draft.lookingFor);
-  if (openTo) vitals.push({ label: "Open to", value: openTo });
+  // The member's own gender, and only when they chose to show it. Who they want to meet is
+  // never on the profile: that page promises it is used only for introductions.
+  const gender = GENDER_OPTIONS.find((option) => option.value === draft.gender)?.label;
+  if (gender && draft.genderIsPublic) vitals.push({ label: "Gender", value: gender });
   if (draft.heightCm)
     vitals.push({ label: "Height", value: formatHeight(draft.heightCm) });
   if (draft.hometown.trim())
