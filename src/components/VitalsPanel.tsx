@@ -14,7 +14,7 @@ export type VitalRow = {
 
 /** Short facts — they slide sideways so the card stays one screen tall. */
 const STRIP: { label: string; icon: VitalIconId }[] = [
-  { label: "Open to", icon: "person" },
+  { label: "Gender", icon: "person" },
   { label: "Height", icon: "height" },
   { label: "Drinks", icon: "drink" },
   { label: "Smokes", icon: "smoke" },

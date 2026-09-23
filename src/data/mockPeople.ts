@@ -109,7 +109,7 @@ export const MOCK_PEOPLE: PersonProfile[] = [
     signature: "I’d rather be early to the gallery than fashionably late anywhere.",
     vitals: [
       { label: "Intent", value: "Legacy" },
-      { label: "Open to", value: "Male" },
+      { label: "Gender", value: "Female" },
       { label: "Height", value: "5' 4\"" },
       { label: "From", value: "Kochi" },
       { label: "Drinks", value: "Sometimes" },
@@ -209,7 +209,7 @@ export const MOCK_PEOPLE: PersonProfile[] = [
     signature: "I remember small things and quietly build around them.",
     vitals: [
       { label: "Intent", value: "Spontaneous" },
-      { label: "Open to", value: "Female" },
+      { label: "Gender", value: "Male" },
       { label: "Height", value: "5' 11\"" },
       { label: "From", value: "Lucknow" },
       { label: "Drinks", value: "Sometimes" },
@@ -305,7 +305,7 @@ export const MOCK_PEOPLE: PersonProfile[] = [
     signature: "I design rooms for light and people for calm.",
     vitals: [
       { label: "Intent", value: "Prospect" },
-      { label: "Open to", value: "Everyone" },
+      { label: "Gender", value: "Female" },
       { label: "Height", value: "5' 6\"" },
       { label: "From", value: "Bangalore" },
       { label: "Drinks", value: "No" },
@@ -397,7 +397,7 @@ export const MOCK_PEOPLE: PersonProfile[] = [
     signature: "I show up on time and stay for the hard part.",
     vitals: [
       { label: "Intent", value: "Prospect" },
-      { label: "Open to", value: "Female" },
+      { label: "Gender", value: "Male" },
       { label: "Height", value: "6' 0\"" },
       { label: "From", value: "Nagpur" },
       { label: "Drinks", value: "Sometimes" },
