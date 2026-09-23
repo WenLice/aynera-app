@@ -12,6 +12,15 @@ export function getMyAdmission(): Promise<MemberAdmission> {
 }
 
 /**
+ * Sends the finished registration for a human read: `Draft` (or `Rejected`) → `Submitted`.
+ * The server checks the profile, preferences and minimum age are in place, and refuses a
+ * second submission with 409 `admission_already_submitted`.
+ */
+export function submitAdmission(): Promise<MemberAdmission> {
+  return request<MemberAdmission>("/admissions/me/submit", { method: "POST" });
+}
+
+/**
  * Records acceptance of one policy document at one version.
  *
  * Idempotent server-side: accepting the same version twice keeps the original timestamp, so a

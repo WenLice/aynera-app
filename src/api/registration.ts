@@ -3,6 +3,7 @@ import type {
   AuthAccount,
   Gender,
   InterestedIn,
+  MemberProfile,
   OtpRequested,
   OutcomeCode,
   TokenPayload,
@@ -39,57 +40,104 @@ export function verifyEmailCode(email: string, code: string): Promise<AuthAccoun
   return request<AuthAccount>("/members/me/email/verify", { method: "POST", body: { email, code } });
 }
 
-/** The basic details the API stores. A full replace — anything left out is cleared. */
-export type ProfileBasics = {
-  name: string;
-  gender: Gender;
-  /** False is "prefer not to say" — hidden on the profile, still used for matching. */
-  genderIsPublic: boolean;
-  /** ISO date, `YYYY-MM-DD`. */
-  dateOfBirth: string;
-  city: string;
-  /** Required by the API: the member gives it on the birth step. */
-  hometown: string;
-  nickname?: string | null;
-  heightCm?: number | null;
-  work?: string | null;
-  religion?: string | null;
+/** One answer to an everyday or belief question, and whether the member publishes it. */
+export type RegistrationAnswer = {
+  /** The option as the app offers it. */
+  option: string;
+  public: boolean;
 };
 
 /**
- * Step 5 — sends the "you", "basics" and "life" answers in one go. The draft lives on the device until
- * here because `city` is required and the "life" step is the first place it is known.
+ * One registration page's answers for `PATCH /members/me/registration`. Every field is optional:
+ * send only what the page in front of the member collects, and the server merges it into what it
+ * already holds. Omitted means "unchanged"; an empty string clears an optional text (nickname, work).
  */
-export function saveProfile(basics: ProfileBasics): Promise<AuthAccount> {
-  return request<AuthAccount>("/members/me/profile", { method: "PUT", body: basics });
-}
+export type RegistrationPage = {
+  name?: string;
+  nickname?: string;
+  gender?: Gender;
+  /** False is "prefer not to say" — hidden on the profile, still used for matching. */
+  genderIsPublic?: boolean;
+  /** ISO date, `YYYY-MM-DD`. */
+  dateOfBirth?: string;
+  heightCm?: number;
+  hometown?: string;
+  /** A city name from the catalog. */
+  city?: string;
+  work?: string;
+  interestedIn?: InterestedIn;
+  minAge?: number;
+  maxAge?: number;
+  /**
+   * True at the slider's ceiling — "minAge and older". Needed because an omitted `maxAge`
+   * already means "unchanged"; cannot be sent together with `maxAge`.
+   */
+  maxAgeIsOpen?: boolean;
+  ageIsFlexible?: boolean;
+  track?: TrackCode;
+  outcome?: OutcomeCode;
+  /** Merged per question. */
+  lifestyle?: Record<string, RegistrationAnswer>;
+  /** Merged per question. */
+  beliefs?: Record<string, RegistrationAnswer>;
+  /** Replaces the whole set, so deselecting a chip sticks. */
+  vibe?: string[];
+};
 
-/** The member's matching hard filters. Private — never shown on a profile. */
+/** What is still only in the server-side draft; a group leaves once promoted to its own table. */
+export type RegistrationAnswers = {
+  name: string | null;
+  nickname: string | null;
+  gender: Gender | null;
+  genderIsPublic: boolean | null;
+  dateOfBirth: string | null;
+  heightCm: number | null;
+  hometown: string | null;
+  city: string | null;
+  work: string | null;
+  interestedIn: InterestedIn | null;
+  minAge: number | null;
+  maxAge: number | null;
+  ageIsFlexible: boolean | null;
+  track: TrackCode | null;
+  outcome: OutcomeCode | null;
+};
+
+/** The member's matching hard filters, once promoted. Null `maxAge` is an open upper end. */
 export type MemberPreferences = {
   interestedIn: InterestedIn;
   minAge: number;
-  /** Null is an open upper end — "45 and older". Sent when the slider sits at its ceiling. */
   maxAge: number | null;
   ageIsFlexible: boolean;
-  /** The track chosen on the first half of the intent step. Sent and stored, not derived. */
   track: TrackCode;
-  /** The child of `track`. The API refuses a pair where the track does not own the outcome. */
   outcome: OutcomeCode;
 };
 
+export type MemberProfileAnswers = {
+  lifestyle: Record<string, RegistrationAnswer>;
+  beliefs: Record<string, RegistrationAnswer>;
+  vibe: string[];
+};
+
 /**
- * Sent once the "looking" and track steps are both answered. Required before an
- * admission can be submitted.
+ * Where the member stands. The server owns the resume rule: `nextStep` is the first step still
+ * outstanding (null when every server-tracked step is done), so the app never keeps its own copy.
  */
-export function savePreferences(
-  preferences: MemberPreferences,
-): Promise<MemberPreferences> {
-  return request<MemberPreferences>("/preferences/me", {
-    method: "PUT",
-    body: preferences,
-  });
+export type RegistrationProgress = {
+  answers: RegistrationAnswers;
+  completed: string[];
+  nextStep: string | null;
+  profile: MemberProfile | null;
+  preferences: MemberPreferences | null;
+  profileAnswers: MemberProfileAnswers | null;
+};
+
+/** Everything answered so far, for prefilling and reopening the flow where it stopped. */
+export function getRegistration(): Promise<RegistrationProgress> {
+  return request<RegistrationProgress>("/members/me/registration");
 }
 
-export function getMyPreferences(): Promise<MemberPreferences | null> {
-  return request<MemberPreferences | null>("/preferences/me");
+/** Saves one page. The response is the updated progress, so no second read is needed. */
+export function saveRegistrationPage(page: RegistrationPage): Promise<RegistrationProgress> {
+  return request<RegistrationProgress>("/members/me/registration", { method: "PATCH", body: page });
 }

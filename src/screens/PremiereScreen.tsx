@@ -14,6 +14,9 @@ import { StatusBar } from "expo-status-bar";
 import { LinearGradient } from "expo-linear-gradient";
 import { StackActions } from "@react-navigation/native";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
+import { ApiError } from "../api/client";
+import { submitAdmission } from "../api/members";
+import { AppText } from "../components/AppText";
 import { Button } from "../components/Button";
 import { ProfileStory, type EditTarget } from "../components/ProfileStory";
 import type { RootStackParamList } from "../navigation/types";
@@ -28,6 +31,28 @@ type Props = NativeStackScreenProps<RootStackParamList, "Premiere">;
 
 const OPENING_MS = 3000;
 
+/** Why the submission was refused, in the app's voice. */
+function sendErrorMessage(error: unknown): string {
+  if (!(error instanceof ApiError)) return "Something went wrong. Please try again.";
+  switch (error.code) {
+    case "admission_profile_required":
+      return "Your basic details haven't saved yet. Tap Edit on them and save once more.";
+    case "admission_preferences_required":
+      return "Who you'd like to meet hasn't saved yet. Tap Edit on it and save once more.";
+    case "admission_underage":
+      return "You need to be 18 to join Aynera.";
+    case "admission_already_approved":
+      return "You're already in. Close this and open Aynera again.";
+    case "admission_account_unavailable":
+      return "This account can't be sent for review. Please contact support.";
+    case "network_error":
+    case "request_timeout":
+      return "We couldn't reach Aynera. Check your connection and try again.";
+    default:
+      return "Something went wrong. Please try again.";
+  }
+}
+
 export function PremiereScreen({ navigation }: Props) {
   const scrollRef = useResetScrollOnFocus();
   const draft = getProfileDraft();
@@ -36,6 +61,9 @@ export function PremiereScreen({ navigation }: Props) {
   const coverUri = person?.heroPhotos[0]?.uri;
 
   const [opening, setOpening] = useState(true);
+  /** The submission is in flight. */
+  const [sending, setSending] = useState(false);
+  const [sendError, setSendError] = useState<string | null>(null);
   const cover = useRef(new Animated.Value(1)).current;
   const sweep = useRef(new Animated.Value(0)).current;
 
@@ -64,6 +92,35 @@ export function PremiereScreen({ navigation }: Props) {
   useEffect(() => {
     playOpening();
   }, [playOpening]);
+
+  /**
+   * Hands the finished registration to a human: `Draft` → `Submitted`. Until this call the
+   * member was never in anyone's review queue, however complete their profile looked.
+   */
+  const send = async () => {
+    if (!isFoundingCity(draft.city)) {
+      updateProfileDraft({ submitted: true });
+      navigation.replace("Waitlist", { city: draft.city || "your city" });
+      return;
+    }
+    setSending(true);
+    setSendError(null);
+    try {
+      const admission = await submitAdmission();
+      updateProfileDraft({ submitted: true });
+      navigation.replace("PendingReview", { state: admission.state });
+    } catch (error) {
+      // Already with a reviewer — a double tap, or a retry after a lost response. Not a failure.
+      if (error instanceof ApiError && error.code === "admission_already_submitted") {
+        updateProfileDraft({ submitted: true });
+        navigation.replace("PendingReview", { state: "Submitted" });
+        return;
+      }
+      setSendError(sendErrorMessage(error));
+    } finally {
+      setSending(false);
+    }
+  };
 
   const goEdit = (target: EditTarget) =>
     navigation.replace("ProfileSetup", { startAt: target });
@@ -143,20 +200,21 @@ export function PremiereScreen({ navigation }: Props) {
       <SafeAreaView style={styles.footer} edges={["bottom"]}>
         <Button
           label={draft.submitted ? "Looks like me" : "Send for a human read"}
+          loading={sending}
           onPress={() => {
             if (draft.submitted) {
               if (navigation.canGoBack()) navigation.dispatch(StackActions.popToTop());
               else navigation.replace("Main");
               return;
             }
-            updateProfileDraft({ submitted: true });
-            if (!isFoundingCity(draft.city)) {
-              navigation.replace("Waitlist", { city: draft.city || "your city" });
-              return;
-            }
-            navigation.replace("PendingReview");
+            void send();
           }}
         />
+        {sendError ? (
+          <AppText variant="meta" tone="rose" center style={styles.sendError}>
+            {sendError}
+          </AppText>
+        ) : null}
       </SafeAreaView>
 
       {opening ? (
@@ -325,6 +383,7 @@ const styles = StyleSheet.create({
     fontSize: typography.size.base,
   },
 
+  sendError: { marginTop: spacing.sm },
   footer: {
     position: "absolute",
     left: 0,

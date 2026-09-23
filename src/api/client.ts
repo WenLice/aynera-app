@@ -86,7 +86,9 @@ export async function request<T>(path: string, options: RequestOptions = {}): Pr
     Accept: "application/json",
     "X-Correlation-Id": correlationId(),
   };
-  if (body !== undefined) headers["Content-Type"] = "application/json";
+  // A file upload sets its own multipart boundary; anything else is JSON.
+  const isForm = typeof FormData !== "undefined" && body instanceof FormData;
+  if (body !== undefined && !isForm) headers["Content-Type"] = "application/json";
   if (auth) {
     const session = getSession();
     if (session) headers.Authorization = `Bearer ${session.accessToken}`;
@@ -101,7 +103,7 @@ export async function request<T>(path: string, options: RequestOptions = {}): Pr
     response = await fetch(`${API_BASE_URL}${path}`, {
       method,
       headers,
-      body: body === undefined ? undefined : JSON.stringify(body),
+      body: body === undefined ? undefined : isForm ? (body as FormData) : JSON.stringify(body),
       signal: controller.signal,
     });
   } catch {

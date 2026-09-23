@@ -17,12 +17,23 @@ import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { ApiError } from "../api/client";
 import { acceptConsent, getMe } from "../api/members";
 import {
-  saveProfile,
-  savePreferences,
+  getIntroVideo,
+  listPhotos,
+  updateIntroVideoCaption,
+  updatePhotoCaption,
+  uploadIntroVideo,
+  uploadPhoto,
+} from "../api/media";
+import {
+  getRegistration,
+  saveRegistrationPage,
   startEmailVerification,
   startPhoneRegistration,
   verifyEmailCode,
   verifyPhoneRegistration,
+  type RegistrationAnswer,
+  type RegistrationPage,
+  type RegistrationProgress,
 } from "../api/registration";
 import { getSession, saveSession } from "../auth/session";
 import { AppText } from "../components/AppText";
@@ -49,7 +60,8 @@ import {
   CONSENT_POLICIES,
   OPTIONAL_PROMPT_MAX,
   REQUIRED_PROMPTS,
-  maxAgeForApi,
+  AGE_MAX,
+  isOpenUpperEnd,
   policyUrl,
 } from "../config/aynera";
 import { AgeRangeSelector } from "../components/AgeRangeSelector";
@@ -118,15 +130,38 @@ function accessStepError(error: unknown): string {
     case "underage":
       return "You need to be 18 to join Aynera.";
     case "validation_failed":
+      // Every call from this screen carries one page's fields, so the first message the
+      // backend names is about the page in front of the member.
       return (
-        error.field("phone") ??
-        error.field("email") ??
-        error.field("name") ??
-        error.field("nickname") ??
-        error.field("dateOfBirth") ??
-        error.field("city") ??
-        "Please check what you entered."
+        Object.values(error.fieldErrors ?? {}).flat()[0] ?? "Please check what you entered."
       );
+    case "photo_face_mismatch":
+      return "This doesn't look like you. Your first two photos need to be of you.";
+    case "photo_face_required":
+      return "We couldn't see a face. Your first two photos need to clearly show you.";
+    case "photo_face_check_required":
+    case "video_face_check_required":
+      return "Complete the face check first — your photos and video are matched to it.";
+    case "photo_ai_generated":
+    case "video_ai_generated":
+      return "That looks generated or edited. Use a real photo or recording of yourself.";
+    case "photo_too_large":
+      return "That photo is too large. Pick a smaller one, or a screenshot of it.";
+    case "photo_unsupported_type":
+      return "That file type isn't supported. Use a JPEG, PNG or WebP photo.";
+    case "photo_caption_too_long":
+    case "video_caption_too_long":
+      return "Keep the caption under 200 characters.";
+    case "video_too_large":
+      return "That video is too large. Keep it under 25 MB — about 30 seconds.";
+    case "video_unsupported_type":
+      return "That video format isn't supported. Use MP4, MOV or WebM.";
+    case "video_face_mismatch":
+      return "The video doesn't look like you. Record it again yourself.";
+    case "video_guideline_failed":
+      return "Something said in the video breaks our community guidelines. Record it again.";
+    case "track_outcome_mismatch":
+      return "That choice doesn't belong to the track you picked. Choose again.";
     case "network_error":
     case "request_timeout":
       return "We couldn't reach Aynera. Check your connection and try again.";
@@ -179,11 +214,12 @@ const REQUIRED_FLOW: StepId[] = [
   "lifestyle",
   "beliefs",
   "vibe",
+  // Before any photo: the face it verifies is what photos and the intro video are matched to.
+  "liveness",
   "photos",
   "video",
   "voicePick",
   "voiceAnswer",
-  "liveness",
   "notifications",
   // Last practical step before the glimpse/reveal pair, which is a deliberate mood beat —
   // agreeing sits with the other housekeeping rather than interrupting it.
@@ -315,7 +351,7 @@ const META: Record<
   },
   liveness: {
     act: "Verify",
-    vibe: "A quick face check so we know you're really you.",
+    vibe: "A quick face check first, so your photos can be checked against it.",
     tone: "paper",
     cta: "Continue",
   },
@@ -387,6 +423,162 @@ function flowFor(startAt?: EditTarget): StepId[] {
   if (startAt === "voice") return ["voicePick", "voiceAnswer"];
   if (startAt === "everyday") return ["lifestyle", "beliefs"];
   return [EDIT_ENTRY[startAt]];
+}
+
+/**
+ * The steps whose answers the server keeps, one `PATCH members/me/registration` each. Everything
+ * else is either a mood beat, an access step with its own endpoints, or not stored server-side yet.
+ */
+const SAVED_STEPS: StepId[] = [
+  "you",
+  "self",
+  "birth",
+  "life",
+  "looking",
+  "intent",
+  "lifestyle",
+  "beliefs",
+  "vibe",
+];
+
+/** Steps that render a backend error beside their own input rather than above the button. */
+const INLINE_ERROR_STEPS: StepId[] = ["phone", "phoneCode", "email", "emailCode"];
+
+/**
+ * Where to reopen the flow, from the server's `nextStep`. The server tracks every step through
+ * `consent`; null means all of them are done, so the member reopens on the closing glimpse and
+ * reveal rather than walking the flow again.
+ */
+function resumeStep(nextStep: string | null): StepId {
+  if (nextStep === null) return "momentGlimpse";
+  return REQUIRED_FLOW.includes(nextStep as StepId) ? (nextStep as StepId) : "arrive";
+}
+
+/** The API's `YYYY-MM-DD`; the draft keeps the three boxes the member typed. */
+function isoBirthDate(birth: ProfileDraft["birth"]): string {
+  return `${birth.year.padStart(4, "0")}-${birth.month.padStart(2, "0")}-${birth.day.padStart(2, "0")}`;
+}
+
+/** Only questions the member actually answered; an untouched question is simply not sent. */
+function answersForApi(record: Record<string, OptionalAnswer>): Record<string, RegistrationAnswer> {
+  const out: Record<string, RegistrationAnswer> = {};
+  for (const [id, answer] of Object.entries(record)) {
+    if (answer.value) out[id] = { option: answer.value, public: answer.visible };
+  }
+  return out;
+}
+
+function answersFromApi(record: Record<string, RegistrationAnswer>): Record<string, OptionalAnswer> {
+  const out: Record<string, OptionalAnswer> = {};
+  for (const [id, answer] of Object.entries(record)) {
+    out[id] = { value: answer.option, visible: answer.public };
+  }
+  return out;
+}
+
+/** What one page sends. Null for a step the server does not store. */
+function pageFor(step: StepId, draft: ProfileDraft): RegistrationPage | null {
+  switch (step) {
+    case "you":
+      return {
+        name: draft.name.trim(),
+        // Empty clears it: switching back to "just my initial" must stick.
+        nickname:
+          draft.introStyle === "nickname" && draft.nickname.trim().length >= 2
+            ? draft.nickname.trim()
+            : "",
+      };
+    case "self":
+      if (draft.gender === "") return null;
+      return {
+        gender: draft.gender,
+        genderIsPublic: draft.genderIsPublic,
+        heightCm: draft.heightCm ?? HEIGHT_DEFAULT_CM,
+      };
+    case "birth":
+      return { dateOfBirth: isoBirthDate(draft.birth), hometown: draft.hometown.trim() };
+    case "life":
+      return { city: draft.city, work: draft.work.trim() };
+    case "looking":
+      if (draft.lookingFor === "") return null;
+      return {
+        interestedIn: draft.lookingFor,
+        minAge: draft.ageMin,
+        // "45+" is an open upper end, which keeps members older than the ceiling reachable.
+        ...(isOpenUpperEnd(draft.ageMax) ? { maxAgeIsOpen: true } : { maxAge: draft.ageMax }),
+        ageIsFlexible: draft.ageFlexible,
+      };
+    case "intent":
+      if (draft.relationshipTrack === "" || draft.intentOutcome === "") return null;
+      // The two-stage picker guarantees the track owns the outcome; the API checks it again.
+      return { track: draft.relationshipTrack, outcome: draft.intentOutcome };
+    case "lifestyle": {
+      const lifestyle = answersForApi(draft.lifestyle);
+      return Object.keys(lifestyle).length ? { lifestyle } : null;
+    }
+    case "beliefs": {
+      const beliefs = answersForApi(draft.beliefs);
+      return Object.keys(beliefs).length ? { beliefs } : null;
+    }
+    case "vibe":
+      return { vibe: draft.chips };
+    default:
+      return null;
+  }
+}
+
+/**
+ * Lays what the server holds over the draft. The server is the record: this runs when the screen
+ * opens, before the member has typed anything, so its answers win wherever it has one.
+ */
+function hydrate(current: ProfileDraft, progress: RegistrationProgress): ProfileDraft {
+  const a = progress.answers;
+  const profile = progress.profile;
+  const prefs = progress.preferences;
+  const answers = progress.profileAnswers;
+
+  const nickname = profile?.nickname ?? a.nickname;
+  const dob = profile?.dateOfBirth ?? a.dateOfBirth;
+  const [year, month, day] = dob ? dob.split("-") : [];
+  const maxAgeKnown = prefs ? true : a.minAge !== null;
+  const maxAge = prefs ? prefs.maxAge : a.maxAge;
+
+  return {
+    ...current,
+    name: profile?.name ?? a.name ?? current.name,
+    nickname: nickname ?? current.nickname,
+    introStyle: nickname ? "nickname" : current.introStyle,
+    gender: ((profile?.gender ?? a.gender) as ProfileDraft["gender"] | null) ?? current.gender,
+    genderIsPublic: profile?.genderIsPublic ?? a.genderIsPublic ?? current.genderIsPublic,
+    birth: dob ? { day, month, year } : current.birth,
+    heightCm: profile?.heightCm ?? a.heightCm ?? current.heightCm,
+    hometown: profile?.hometown ?? a.hometown ?? current.hometown,
+    city: profile?.city ?? a.city ?? current.city,
+    work: profile?.work ?? a.work ?? current.work,
+    lookingFor:
+      ((prefs?.interestedIn ?? a.interestedIn) as ProfileDraft["lookingFor"] | null) ??
+      current.lookingFor,
+    ageMin: prefs?.minAge ?? a.minAge ?? current.ageMin,
+    // Null upper end is "and older", which the slider shows at its ceiling.
+    ageMax: maxAgeKnown ? (maxAge ?? AGE_MAX) : current.ageMax,
+    ageFlexible: prefs?.ageIsFlexible ?? a.ageIsFlexible ?? current.ageFlexible,
+    relationshipTrack:
+      ((prefs?.track ?? a.track) as ProfileDraft["relationshipTrack"] | null) ??
+      current.relationshipTrack,
+    intentOutcome:
+      ((prefs?.outcome ?? a.outcome) as ProfileDraft["intentOutcome"] | null) ??
+      current.intentOutcome,
+    lifestyle: answers ? { ...current.lifestyle, ...answersFromApi(answers.lifestyle) } : current.lifestyle,
+    beliefs: answers ? { ...current.beliefs, ...answersFromApi(answers.beliefs) } : current.beliefs,
+    chips: answers && answers.vibe.length ? answers.vibe : current.chips,
+    // A passed face check is on the server; the step shows as done instead of asking again.
+    verification: progress.completed.includes("liveness")
+      ? { ...current.verification, uri: current.verification.uri ?? "liveness:passed" }
+      : current.verification,
+    // The server knows whether every required document is accepted at its current version, so a
+    // member who agreed on another device sees the box already ticked.
+    consented: progress.completed.includes("consent") || current.consented,
+  };
 }
 
 export function ProfileSetupScreen({ navigation, route }: Props) {
@@ -466,11 +658,14 @@ export function ProfileSetupScreen({ navigation, route }: Props) {
     return () => sub.remove();
   }, []);
 
-  // A signed-in member resuming a Draft account: seed the access steps from the server so the
-  // already-verified phone/email are skipped instead of tripping "already registered".
+  // A signed-in member coming back: the server holds every page they saved. Fill the draft from
+  // it and — on a fresh walk, not an edit — reopen at the first step still outstanding, so
+  // nobody starts again at page 2 with their answers sitting on the server.
   useEffect(() => {
     if (!getSession()) return;
     let cancelled = false;
+
+    // The phone and email values themselves are on the account, not in the registration read.
     void getMe()
       .then((account) => {
         if (cancelled) return;
@@ -480,24 +675,62 @@ export function ProfileSetupScreen({ navigation, route }: Props) {
           phoneVerified: account.phoneConfirmed || current.phoneVerified,
           email: account.email ?? current.email,
           emailVerified: account.emailConfirmed || current.emailVerified,
-          name: current.name || account.profile?.name || "",
-          nickname: current.nickname || account.profile?.nickname || "",
-          introStyle: current.nickname || account.profile?.nickname ? "nickname" : current.introStyle,
-          gender: current.gender || (account.profile?.gender as ProfileDraft["gender"]) || "",
-          genderIsPublic: account.profile?.genderIsPublic ?? current.genderIsPublic,
-          city: current.city || account.profile?.city || "",
-          heightCm: current.heightCm ?? account.profile?.heightCm ?? null,
-          hometown: current.hometown || account.profile?.hometown || "",
-          work: current.work || account.profile?.work || "",
         }));
       })
       .catch(() => {
         /* offline or expired session — the steps will simply ask again */
       });
+
+    // Photos and the video are not part of the registration read; they come from their own lists.
+    // Each slot remembers what the server holds so leaving the step only uploads what changed.
+    void listPhotos()
+      .then((photos) => {
+        if (cancelled || photos.length === 0) return;
+        setDraft((current) => ({
+          ...current,
+          photos: current.photos.map((slot, i) => {
+            const saved = photos.find((photo) => photo.sortOrder === i + 1);
+            if (!saved?.url) return slot;
+            const caption = saved.caption ?? "";
+            return { ...slot, uri: saved.url, savedUri: saved.url, remoteId: saved.id, caption, savedCaption: caption };
+          }),
+        }));
+      })
+      .catch(() => {
+        /* offline — the member can still pick photos; they upload on Continue */
+      });
+
+    void getIntroVideo()
+      .then((video) => {
+        if (cancelled || !video?.url) return;
+        const caption = video.caption ?? "";
+        setDraft((current) => ({
+          ...current,
+          video: { ...current.video, uri: video.url, savedUri: video.url, caption, savedCaption: caption },
+        }));
+      })
+      .catch(() => {
+        /* offline — same as above */
+      });
+
+    void getRegistration()
+      .then((progress) => {
+        if (cancelled) return;
+        setDraft((current) => hydrate(current, progress));
+        if (!startAt) {
+          const target = REQUIRED_FLOW.indexOf(resumeStep(progress.nextStep));
+          // Only jump if the member has not already moved on by hand while this loaded.
+          setIndex((v) => (v === 0 && target > 0 ? target : v));
+        }
+      })
+      .catch(() => {
+        /* offline — the flow starts from the top and each page saves as it goes */
+      });
+
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [startAt]);
 
   // While only one city is open there is nothing to choose, so pick it. Guarded on an empty
   // city so re-entering this step from Settings never overwrites the member's own answer.
@@ -744,9 +977,48 @@ export function ProfileSetupScreen({ navigation, route }: Props) {
 
   const advance = () => setIndex((v) => Math.min(v + 1, FLOW.length - 1));
 
-  /** The API's `YYYY-MM-DD`; the draft keeps the three boxes the member typed. */
-  const isoBirthDate = (birth: ProfileDraft["birth"]) =>
-    `${birth.year.padStart(4, "0")}-${birth.month.padStart(2, "0")}-${birth.day.padStart(2, "0")}`;
+  /**
+   * Sends each changed photo to its own slot, one at a time. A slot is marked saved as soon as it
+   * lands, so a failure part-way keeps what already went up and a retry sends only the rest.
+   */
+  const savePhotos = async () => {
+    for (let i = 0; i < draft.photos.length; i++) {
+      const slot = draft.photos[i];
+      if (!slot.uri) continue;
+      const caption = slot.caption.trim();
+      if (slot.uri !== slot.savedUri) {
+        const saved = await uploadPhoto(i + 1, slot.uri, caption);
+        const uri = slot.uri;
+        setDraft((prev) => ({
+          ...prev,
+          photos: prev.photos.map((p, j) =>
+            j === i ? { ...p, remoteId: saved.id, savedUri: uri, savedCaption: caption } : p,
+          ),
+        }));
+      } else if (slot.remoteId && caption !== (slot.savedCaption ?? "")) {
+        await updatePhotoCaption(slot.remoteId, caption);
+        setDraft((prev) => ({
+          ...prev,
+          photos: prev.photos.map((p, j) => (j === i ? { ...p, savedCaption: caption } : p)),
+        }));
+      }
+    }
+  };
+
+  /** The intro video is optional: nothing picked means nothing to send. */
+  const saveVideo = async () => {
+    const video = draft.video;
+    if (!video.uri) return;
+    const caption = video.caption.trim();
+    if (video.uri !== video.savedUri) {
+      await uploadIntroVideo(video.uri, caption);
+      const uri = video.uri;
+      setDraft((prev) => ({ ...prev, video: { ...prev.video, savedUri: uri, savedCaption: caption } }));
+    } else if (caption !== (video.savedCaption ?? "")) {
+      await updateIntroVideoCaption(caption);
+      setDraft((prev) => ({ ...prev, video: { ...prev.video, savedCaption: caption } }));
+    }
+  };
 
   /** The steps that talk to the API; everything else only touches the local draft. */
   const runAccessStep = async (): Promise<boolean> => {
@@ -799,52 +1071,6 @@ export function ProfileSetupScreen({ navigation, route }: Props) {
           }
         });
       }
-      case "life": {
-        // The last step of the basic details — city is collected here, and the API requires it, so
-        // this is the first point the whole set can be sent. Everything before this stayed on device.
-        if (draft.gender === "") return true;
-        return callBackend(async () => {
-          await saveProfile({
-            name: draft.name.trim(),
-            gender: draft.gender as Exclude<ProfileDraft["gender"], "">,
-            genderIsPublic: draft.genderIsPublic,
-            dateOfBirth: isoBirthDate(draft.birth),
-            city: draft.city,
-            nickname:
-              draft.introStyle === "nickname" && draft.nickname.trim().length >= 2
-                ? draft.nickname.trim()
-                : null,
-            heightCm: draft.heightCm,
-            hometown: draft.hometown.trim(),
-            work: draft.work.trim() || null,
-          });
-        });
-      }
-      case "intent": {
-        // The last of the two preference steps — "looking" is answered by now, so the
-        // whole §6 filter set goes in one write, the way the profile does at "life".
-        if (
-          draft.lookingFor === "" ||
-          draft.intentOutcome === "" ||
-          draft.relationshipTrack === ""
-        ) {
-          return true;
-        }
-        return callBackend(async () => {
-          await savePreferences({
-            interestedIn: draft.lookingFor as Exclude<ProfileDraft["lookingFor"], "">,
-            minAge: draft.ageMin,
-            // Null at the slider's ceiling: "45+" is an open upper end, which is what keeps
-            // members older than the ceiling reachable at all.
-            maxAge: maxAgeForApi(draft.ageMax),
-            ageIsFlexible: draft.ageFlexible,
-            // Both halves of the step are sent now; the API refuses a track that does
-            // not own the outcome, which the two-stage picker already guarantees.
-            track: draft.relationshipTrack as Exclude<ProfileDraft["relationshipTrack"], "">,
-            outcome: draft.intentOutcome as Exclude<ProfileDraft["intentOutcome"], "">,
-          });
-        });
-      }
       default:
         return true;
     }
@@ -870,8 +1096,7 @@ export function ProfileSetupScreen({ navigation, route }: Props) {
       step === "phoneCode" ||
       step === "email" ||
       step === "emailCode" ||
-      step === "life" ||
-      step === "intent"
+      step === "consent"
     ) {
       void runAccessStep().then((ok) => {
         if (ok) advance();
@@ -892,6 +1117,28 @@ export function ProfileSetupScreen({ navigation, route }: Props) {
       setVibeSummary(true);
       return;
     }
+    if (step === "photos" || step === "video") {
+      void callBackend(step === "photos" ? savePhotos : saveVideo).then((ok) => {
+        if (ok) proceed();
+      });
+      return;
+    }
+    // Each stored page is saved before moving on, so leaving mid-registration loses nothing and
+    // the member reopens here next time. A failed save keeps them on the page to retry.
+    const page = SAVED_STEPS.includes(step) ? pageFor(step, draft) : null;
+    if (page) {
+      void callBackend(async () => {
+        await saveRegistrationPage(page);
+      }).then((ok) => {
+        if (ok) proceed();
+      });
+      return;
+    }
+    proceed();
+  };
+
+  /** Moves past the current step once anything it needed to save has been saved. */
+  const proceed = () => {
     if (editing && index >= FLOW.length - 1) {
       setProfileDraft(draft);
       navigation.replace("Premiere");
@@ -975,6 +1222,8 @@ export function ProfileSetupScreen({ navigation, route }: Props) {
       primaryLabel={busy ? "One moment…" : vibeCta}
       primaryDisabled={primaryDisabled}
       disabledReason={busy ? undefined : (missing ?? undefined)}
+      // The four access steps show their own error inline, next to the field it is about.
+      errorText={INLINE_ERROR_STEPS.includes(step) ? undefined : (stepError ?? undefined)}
       onPrimary={goNext}
       onBack={goBack}
       onExit={editing ? undefined : () => setExitOpen(true)}
@@ -1601,8 +1850,9 @@ export function ProfileSetupScreen({ navigation, route }: Props) {
         {step === "liveness" && (
           <View style={styles.block}>
             <AppText variant="meta" tone="muted" center>
-              Open your camera for a quick face check. Sent only to the person
-              reviewing your profile — never shown on your introduction.
+              Open your camera for a quick face check. Your photos and intro
+              video are matched to it, and it is seen only by the person reviewing
+              your profile — never shown on your introduction.
             </AppText>
             <View style={styles.stack}>
               {[
@@ -1623,7 +1873,7 @@ export function ProfileSetupScreen({ navigation, route }: Props) {
                   ? "Face check complete"
                   : "Start liveness check"
               }
-              hint="Opens your camera · deleted after review"
+              hint="A short camera check that it's really you · never on your profile"
               selected={!!draft.verification.uri}
               onPress={pickVerification}
             />
@@ -1856,10 +2106,11 @@ export function ProfileSetupScreen({ navigation, route }: Props) {
       <LivenessCheck
         open={livenessOpen}
         onClose={() => setLivenessOpen(false)}
-        onCaptured={(uri) =>
+        onPassed={(sessionId) =>
           setDraft((prev) => ({
             ...prev,
-            verification: { ...prev.verification, uri },
+            // Only a marker: the check itself lives with AWS and the server, never on the phone.
+            verification: { ...prev.verification, uri: `liveness:${sessionId}` },
           }))
         }
       />

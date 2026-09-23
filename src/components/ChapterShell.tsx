@@ -29,6 +29,8 @@ type Props = {
   primaryDisabled?: boolean;
   /** Shown under the primary when it's disabled — never leave people guessing. */
   disabledReason?: string;
+  /** A save that failed. Shown whether or not the primary is enabled, since retrying is the fix. */
+  errorText?: string;
   onPrimary: () => void;
   onBack?: () => void;
   /** Save and leave. Present on every step of a long flow. */
@@ -53,6 +55,7 @@ export function ChapterShell({
   primaryLabel,
   primaryDisabled,
   disabledReason,
+  errorText,
   onPrimary,
   onBack,
   onExit,
@@ -185,6 +188,11 @@ export function ChapterShell({
           </Animated.View>
 
           <View style={[styles.footer, dark && styles.footerDark]}>
+            {errorText ? (
+              <AppText variant="meta" tone="rose" center style={styles.reason}>
+                {errorText}
+              </AppText>
+            ) : null}
             {primaryDisabled && disabledReason ? (
               <AppText
                 variant="meta"

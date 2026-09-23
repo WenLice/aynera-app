@@ -18,12 +18,20 @@ export type PhotoSlot = {
   uri: string | null;
   /** The line that travels with this photo. */
   caption: string;
+  /** Set once this slot is on the server: the uri and caption it holds there, and its id. */
+  remoteId?: string | null;
+  savedUri?: string | null;
+  savedCaption?: string;
 };
 
 export type VideoSlot = {
   id: string;
   uri: string | null;
   caption: string;
+  /** Set once this slot is on the server: the uri and caption it holds there, and its id. */
+  remoteId?: string | null;
+  savedUri?: string | null;
+  savedCaption?: string;
 };
 
 export type PromptAnswer = {
