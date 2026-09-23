@@ -12,7 +12,6 @@ services:
   - type: web
     name: aynera-app
     runtime: static
-    plan: free
     branch: main
     # `expo export` forces NODE_ENV to production itself, so it loads .env.production without
     # being told to. Setting NODE_ENV here would be noise, and the Expo docs recommend against
