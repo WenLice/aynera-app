@@ -87,7 +87,7 @@ const COPY: Record<Step, { kicker: string; title: string; line: string }> = {
   code: {
     kicker: "One-time code",
     title: "Enter the six digits.",
-    line: "It lands by SMS or email within a moment.",
+    line: "Demo: nothing is sent — any six digits sign you in.",
   },
   password: {
     kicker: "Welcome back",

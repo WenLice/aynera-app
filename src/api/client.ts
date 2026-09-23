@@ -1,6 +1,10 @@
 import { API_BASE_URL } from "../config/aynera";
 import { clearSession, getSession, saveSession } from "../auth/session";
 import type { ApiResponse, TokenPayload } from "./types";
+import { handleDemoRequest } from "./demoBackend";
+
+/** The demo branch has no server: every call is answered on this device (see demoBackend.ts). */
+const DEMO = true;
 
 /** A failed API call, carrying the backend's machine-readable error code. */
 export class ApiError extends Error {
@@ -81,6 +85,8 @@ export async function request<T>(path: string, options: RequestOptions = {}): Pr
     signal,
     timeoutMs = 8000,
   } = options;
+
+  if (DEMO) return handleDemoRequest<T>(path, method, body);
 
   const headers: Record<string, string> = {
     Accept: "application/json",

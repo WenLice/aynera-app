@@ -251,7 +251,7 @@ const META: Record<
     act: "Access",
     vibe: "What's your number?",
     tone: "paper",
-    cta: "Send my code",
+    cta: "Continue",
   },
   phoneCode: {
     act: "Access",
@@ -263,7 +263,7 @@ const META: Record<
     act: "Access",
     vibe: "And an email we can reach you on?",
     tone: "paper",
-    cta: "Send my code",
+    cta: "Continue",
   },
   emailCode: {
     act: "Access",
@@ -1029,11 +1029,15 @@ export function ProfileSetupScreen({ navigation, route }: Props) {
           setIndex((v) => Math.min(v + 2, FLOW.length - 1));
           return false;
         }
+        // Demo: no code is sent — the number is confirmed on Continue and the code page skipped.
         const ok = await callBackend(async () => {
           await startPhoneRegistration(draft.phone);
+          const tokens = await verifyPhoneRegistration(draft.phone, "000000");
+          await saveSession({ accessToken: tokens.accessToken, refreshToken: tokens.refreshToken });
+          patch({ phoneVerified: true });
         });
-        if (ok) setSmsCode("");
-        return ok;
+        if (ok) setIndex((v) => Math.min(v + 2, FLOW.length - 1));
+        return false;
       }
       case "phoneCode": {
         return callBackend(async () => {
@@ -1047,11 +1051,14 @@ export function ProfileSetupScreen({ navigation, route }: Props) {
           setIndex((v) => Math.min(v + 2, FLOW.length - 1));
           return false;
         }
+        // Demo: confirmed on Continue, like the phone.
         const ok = await callBackend(async () => {
           await startEmailVerification(draft.email.trim());
+          await verifyEmailCode(draft.email.trim(), "000000");
+          patch({ emailVerified: true });
         });
-        if (ok) setMailCode("");
-        return ok;
+        if (ok) setIndex((v) => Math.min(v + 2, FLOW.length - 1));
+        return false;
       }
       case "emailCode": {
         return callBackend(async () => {
@@ -1295,8 +1302,8 @@ export function ProfileSetupScreen({ navigation, route }: Props) {
             </View>
             <PrivacyHint text="Never shown on your profile" />
             <Text style={styles.helper}>
-              We'll send a six-digit code to confirm it's yours. No one can find
-              you by your number.
+              Demo: no code is sent — your number is confirmed on Continue. No one
+              can find you by your number.
             </Text>
             {stepError ? (
               <AppText variant="meta" tone="rose" center>

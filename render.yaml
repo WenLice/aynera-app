@@ -1,19 +1,17 @@
-# Render blueprint for the Aynera app's web build.
+# Render blueprint for the Aynera app DEMO (branch `demo`).
 #
-# A static site: `expo export --platform web` produces dist/, which Render serves directly.
-# This is the same source as the native app — Expo's web target — so what is deployed here
-# is the real registration flow, not a separate demo.
+# A static site built from the same screens as `dev`, but with no server behind it: every API
+# call is answered on the visitor's device (src/api/demoBackend.ts). No OTP by SMS or email, no
+# keys, no database — someone can walk the whole registration and into the app. What they enter
+# stays in their own browser.
 #
-# `main` is the release branch: day-to-day work happens on `dev` and is merged here when it
-# should go live. The API and web URLs are baked in at build time from .env.production; to
-# point a deployment somewhere else, set EXPO_PUBLIC_AYNERA_API_BASE_URL in the dashboard,
-# which overrides the committed default.
+# Separate from the real app site (aynera-app, branch main). Auto-deploys on every push to demo.
 services:
   - type: web
-    name: aynera-app
+    name: aynera-app-demo
     runtime: static
     plan: free
-    branch: main
+    branch: demo
     # `expo export` forces NODE_ENV to production itself, so it loads .env.production without
     # being told to. Setting NODE_ENV here would be noise, and the Expo docs recommend against
     # using it to select env files at all.
