@@ -17,13 +17,17 @@ import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { ApiError } from "../api/client";
 import { acceptConsent, getMe } from "../api/members";
 import {
+  deleteVoiceAnswer,
   getIntroVideo,
   listPhotos,
+  listVoiceAnswers,
   updateIntroVideoCaption,
   updatePhotoCaption,
   uploadIntroVideo,
   uploadPhoto,
+  uploadVoiceAnswer,
 } from "../api/media";
+import { VoiceRecorder } from "../components/VoiceRecorder";
 import {
   getRegistration,
   saveRegistrationPage,
@@ -71,6 +75,7 @@ import { Field } from "../components/Field";
 import { HeightPicker } from "../components/HeightPicker";
 import { PrivacyHint } from "../components/PrivacyHint";
 import { VisibilityToggle } from "../components/VisibilityToggle";
+import { CheckboxRow } from "../components/CheckboxRow";
 import { selectTap } from "../utils/feedback";
 import { QuestionCard } from "../components/QuestionCard";
 import { VibeMoment } from "../components/VibeMoment";
@@ -142,6 +147,17 @@ function accessStepError(error: unknown): string {
     case "photo_face_check_required":
     case "video_face_check_required":
       return "Complete the face check first — your photos and video are matched to it.";
+    case "voice_too_large":
+      return "That recording is too long. Keep it under a minute and try again.";
+    case "voice_unsupported_type":
+    case "voice_empty":
+      return "That recording didn't save properly. Record it again.";
+    case "voice_guideline_failed":
+      return "That answer doesn't meet our community guidelines. Try saying it another way.";
+    case "voice_prompt_not_chosen":
+      return "Choose your prompts again, then add your answers.";
+    case "preferences_required":
+      return "Finish who you'd like to meet first, then come back here.";
     case "photo_ai_generated":
     case "video_ai_generated":
       return "That looks generated or edited. Use a real photo or recording of yourself.";
@@ -439,6 +455,11 @@ const SAVED_STEPS: StepId[] = [
   "lifestyle",
   "beliefs",
   "vibe",
+  // The chosen prompts; the answers page saves itself, since recordings upload alongside.
+  "voicePick",
+  // Profile-editor extras.
+  "dealbreaker",
+  "rhythm",
 ];
 
 /** Steps that render a backend error beside their own input rather than above the button. */
@@ -451,7 +472,23 @@ const INLINE_ERROR_STEPS: StepId[] = ["phone", "phoneCode", "email", "emailCode"
  */
 function resumeStep(nextStep: string | null): StepId {
   if (nextStep === null) return "momentGlimpse";
+  // The server's one prompts step is two pages here; start at choosing them. The intro video is
+  // optional and not tracked, so a member who left on it resumes on the prompts.
+  if (nextStep === "voice") return "voicePick";
   return REQUIRED_FLOW.includes(nextStep as StepId) ? (nextStep as StepId) : "arrive";
+}
+
+/** The prompts as the API stores them: the full list, in order, with any typed answer. */
+function promptsForApi(prompts: ProfileDraft["prompts"]): { promptId: string; text?: string }[] {
+  return prompts.map((p) => {
+    const text = p.answer.trim();
+    return text ? { promptId: p.promptId, text } : { promptId: p.promptId };
+  });
+}
+
+/** A prompt counts as answered with a real typed sentence or a recording. */
+function isPromptAnswered(p: ProfileDraft["prompts"][number]): boolean {
+  return p.answer.trim().length > 8 || !!p.audioUri;
 }
 
 /** The API's `YYYY-MM-DD`; the draft keeps the three boxes the member typed. */
@@ -512,16 +549,27 @@ function pageFor(step: StepId, draft: ProfileDraft): RegistrationPage | null {
       if (draft.relationshipTrack === "" || draft.intentOutcome === "") return null;
       // The two-stage picker guarantees the track owns the outcome; the API checks it again.
       return { track: draft.relationshipTrack, outcome: draft.intentOutcome };
-    case "lifestyle": {
-      const lifestyle = answersForApi(draft.lifestyle);
-      return Object.keys(lifestyle).length ? { lifestyle } : null;
-    }
-    case "beliefs": {
-      const beliefs = answersForApi(draft.beliefs);
-      return Object.keys(beliefs).length ? { beliefs } : null;
-    }
+    // The whole category, even empty: the server replaces it, so a question the member cleared
+    // is removed rather than kept.
+    case "lifestyle":
+      return { lifestyle: answersForApi(draft.lifestyle) };
+    case "beliefs":
+      return { beliefs: answersForApi(draft.beliefs) };
     case "vibe":
       return { vibe: draft.chips };
+    case "voicePick":
+    case "voiceAnswer":
+      return { prompts: promptsForApi(draft.prompts) };
+    case "dealbreaker":
+      // Empty clears it, so taking the words out sticks.
+      return { dealbreaker: draft.dealbreaker.trim() };
+    case "rhythm": {
+      const rhythm: Record<string, string> = {};
+      if (draft.socialEnergy) rhythm.socialEnergy = draft.socialEnergy;
+      if (draft.weekends) rhythm.weekends = draft.weekends;
+      if (draft.family) rhythm.family = draft.family;
+      return Object.keys(rhythm).length ? { rhythm } : null;
+    }
     default:
       return null;
   }
@@ -571,6 +619,27 @@ function hydrate(current: ProfileDraft, progress: RegistrationProgress): Profile
     lifestyle: answers ? { ...current.lifestyle, ...answersFromApi(answers.lifestyle) } : current.lifestyle,
     beliefs: answers ? { ...current.beliefs, ...answersFromApi(answers.beliefs) } : current.beliefs,
     chips: answers && answers.vibe.length ? answers.vibe : current.chips,
+    // Only ids come back; the wording lives in the app's own prompt list. A recording's link is
+    // filled in separately from the voice-answer list.
+    prompts:
+      answers && answers.prompts.length
+        ? answers.prompts.map((saved) => {
+            const known = current.prompts.find((p) => p.promptId === saved.promptId);
+            return {
+              promptId: saved.promptId,
+              promptText:
+                PROFILE_PROMPTS.find((p) => p.id === saved.promptId)?.text ?? known?.promptText ?? "",
+              answer: saved.text ?? "",
+              audioUri: known?.audioUri ?? null,
+              savedAudioUri: known?.savedAudioUri ?? null,
+            };
+          })
+        : current.prompts,
+    dealbreaker: answers?.dealbreaker ?? current.dealbreaker,
+    socialEnergy: answers?.rhythm.socialEnergy ?? current.socialEnergy,
+    weekends: answers?.rhythm.weekends ?? current.weekends,
+    family: answers?.rhythm.family ?? current.family,
+    notificationsOn: progress.settings?.notifyIntroductions ?? current.notificationsOn,
     // A passed face check is on the server; the step shows as done instead of asking again.
     verification: progress.completed.includes("liveness")
       ? { ...current.verification, uri: current.verification.uri ?? "liveness:passed" }
@@ -722,6 +791,18 @@ export function ProfileSetupScreen({ navigation, route }: Props) {
           // Only jump if the member has not already moved on by hand while this loaded.
           setIndex((v) => (v === 0 && target > 0 ? target : v));
         }
+        // Recordings come from their own list, after the prompts they belong to are in the draft.
+        if (!progress.profileAnswers?.prompts.some((p) => p.hasAudio)) return;
+        return listVoiceAnswers().then((voice) => {
+          if (cancelled) return;
+          setDraft((current) => ({
+            ...current,
+            prompts: current.prompts.map((p) => {
+              const saved = voice.find((v) => v.promptId === p.promptId);
+              return saved?.url ? { ...p, audioUri: saved.url, savedAudioUri: saved.url } : p;
+            }),
+          }));
+        });
       })
       .catch(() => {
         /* offline — the flow starts from the top and each page saves as it goes */
@@ -750,7 +831,7 @@ export function ProfileSetupScreen({ navigation, route }: Props) {
   const photoCount = draft.photos.filter((p) => !!p.uri).length;
   const verified = !!draft.verification.uri;
   const age = ageFromBirth(draft.birth);
-  const answered = draft.prompts.filter((p) => p.answer.trim().length > 8).length;
+  const answered = draft.prompts.filter(isPromptAnswered).length;
   const promptCap = startAt === "voice" ? OPTIONAL_PROMPT_MAX : REQUIRED_PROMPTS;
 
   const pickPhoto = async (slotId: string) => {
@@ -935,7 +1016,7 @@ export function ProfileSetupScreen({ navigation, route }: Props) {
           : null;
       case "voiceAnswer":
         return answered < REQUIRED_PROMPTS
-          ? `${REQUIRED_PROMPTS - answered} answer${REQUIRED_PROMPTS - answered === 1 ? "" : "s"} still need a real sentence`
+          ? `${REQUIRED_PROMPTS - answered} answer${REQUIRED_PROMPTS - answered === 1 ? "" : "s"} still to go — type a real sentence or record one`
           : null;
       case "rhythm":
         if (draft.socialEnergy === "") return "How you recharge with people";
@@ -1018,6 +1099,45 @@ export function ProfileSetupScreen({ navigation, route }: Props) {
       await updateIntroVideoCaption(caption);
       setDraft((prev) => ({ ...prev, video: { ...prev.video, savedCaption: caption } }));
     }
+  };
+
+  /**
+   * The prompt list first — a recording is only accepted for a prompt the member holds — then each
+   * new take, then any recording the member removed. Each is marked saved as it lands, so a retry
+   * after a failure sends only what is left.
+   */
+  const saveVoice = async () => {
+    await saveRegistrationPage({ prompts: promptsForApi(draft.prompts) });
+    for (const p of draft.prompts) {
+      if (p.audioUri && p.audioUri !== p.savedAudioUri) {
+        const saved = await uploadVoiceAnswer(p.promptId, p.audioUri);
+        const local = p.audioUri;
+        setDraft((prev) => ({
+          ...prev,
+          prompts: prev.prompts.map((q) =>
+            q.promptId === p.promptId && q.audioUri === local
+              ? { ...q, audioUri: saved.url ?? local, savedAudioUri: saved.url ?? local }
+              : q,
+          ),
+        }));
+      } else if (!p.audioUri && p.savedAudioUri) {
+        await deleteVoiceAnswer(p.promptId);
+        setDraft((prev) => ({
+          ...prev,
+          prompts: prev.prompts.map((q) => (q.promptId === p.promptId ? { ...q, savedAudioUri: null } : q)),
+        }));
+      }
+    }
+  };
+
+  /** Yes or not now — either is an answer, and both are saved before moving on. */
+  const saveNotifications = (on: boolean) => {
+    patch({ notificationsOn: on });
+    void callBackend(async () => {
+      await saveRegistrationPage({ notificationsOn: on });
+    }).then((ok) => {
+      if (ok) proceed();
+    });
   };
 
   /** The steps that talk to the API; everything else only touches the local draft. */
@@ -1103,7 +1223,16 @@ export function ProfileSetupScreen({ navigation, route }: Props) {
       });
       return;
     }
-    if (step === "notifications") patch({ notificationsOn: true });
+    if (step === "notifications") {
+      saveNotifications(true);
+      return;
+    }
+    if (step === "voiceAnswer") {
+      void callBackend(saveVoice).then((ok) => {
+        if (ok) proceed();
+      });
+      return;
+    }
     if (step === "self" && draft.heightCm === null)
       patch({ heightCm: HEIGHT_DEFAULT_CM });
     if (step === "vibe" && !vibeSummary) {
@@ -1236,10 +1365,7 @@ export function ProfileSetupScreen({ navigation, route }: Props) {
       }
       onSecondary={
         step === "notifications"
-          ? () => {
-              patch({ notificationsOn: false });
-              setIndex((v) => Math.min(v + 1, FLOW.length - 1));
-            }
+          ? () => saveNotifications(false)
           : SKIPPABLE.includes(step)
           ? () => {
               if (editing) {
@@ -1587,8 +1713,7 @@ export function ProfileSetupScreen({ navigation, route }: Props) {
             <VisibilityToggle
               visible={draft.genderIsPublic}
               onChange={(genderIsPublic) => patch({ genderIsPublic })}
-              hiddenLabel="Prefer not to say — kept off your profile"
-              accessibilityLabel="Show my gender on my profile"
+              accessibilityLabel="Keep my gender private"
             />
 
             <Text style={styles.fieldLabel}>How tall are you?</Text>
@@ -1966,6 +2091,25 @@ export function ProfileSetupScreen({ navigation, route }: Props) {
                     Someone might reply: “Tell me more about that.”
                   </Text>
                 ) : null}
+                <VoiceRecorder
+                  uri={item.audioUri ?? null}
+                  onRecorded={(audioUri) =>
+                    setDraft((prev) => ({
+                      ...prev,
+                      prompts: prev.prompts.map((p) =>
+                        p.promptId === item.promptId ? { ...p, audioUri } : p,
+                      ),
+                    }))
+                  }
+                  onRemove={() =>
+                    setDraft((prev) => ({
+                      ...prev,
+                      prompts: prev.prompts.map((p) =>
+                        p.promptId === item.promptId ? { ...p, audioUri: null } : p,
+                      ),
+                    }))
+                  }
+                />
               </View>
             ))}
           </View>
@@ -2033,11 +2177,10 @@ export function ProfileSetupScreen({ navigation, route }: Props) {
               ))}
             </View>
 
-            <VisibilityToggle
-              visible={draft.consented}
+            <CheckboxRow
+              checked={draft.consented}
               onChange={(consented) => patch({ consented })}
-              shownLabel="I've read and agree to all three"
-              hiddenLabel="I've read and agree to all three"
+              label="I've read and agree to all three"
               accessibilityLabel="I have read and agree to the Terms of Use, Privacy Notice and Community Guidelines"
             />
 

@@ -40,6 +40,9 @@ export const maxAgeForApi = (maxAge: number) => (isOpenUpperEnd(maxAge) ? null :
 export const REQUIRED_PROMPTS = 2;
 export const OPTIONAL_PROMPT_MAX = 3;
 
+/** A spoken prompt answer stops on its own at this length; the API refuses anything much larger. */
+export const VOICE_ANSWER_MAX_SECONDS = 60;
+
 export const FLAGS = {
   /** Contact hashing / hide-by-number is not live yet. UI only. */
   hidePeopleIKnow: false,

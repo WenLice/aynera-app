@@ -46,7 +46,13 @@
           "cameraPermission": "Aynera uses your camera for a private liveness check and if you want to take a new photo."
         }
       ],
-      "expo-secure-store"
+      "expo-secure-store",
+      [
+        "expo-audio",
+        {
+          "microphonePermission": "Aynera uses your microphone only when you record a spoken answer to a prompt."
+        }
+      ]
     ]
   }
 }

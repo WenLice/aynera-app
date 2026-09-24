@@ -54,6 +54,14 @@ function typeFromUri(uri: string): string | null {
       return "video/quicktime";
     case "webm":
       return "video/webm";
+    case "m4a":
+      return "audio/mp4";
+    case "aac":
+      return "audio/aac";
+    case "mp3":
+      return "audio/mpeg";
+    case "ogg":
+      return "audio/ogg";
     default:
       return null;
   }
@@ -104,4 +112,36 @@ export async function uploadIntroVideo(uri: string, caption: string): Promise<In
 
 export function updateIntroVideoCaption(caption: string): Promise<void> {
   return request<void>("/introduction-video/me", { method: "PATCH", body: { caption } });
+}
+
+/** A stored spoken answer. `url` is a signed link that expires in about an hour — play it, never keep it. */
+export type VoiceAnswer = {
+  promptId: string;
+  contentType: string;
+  byteSize: number;
+  url: string | null;
+};
+
+export function listVoiceAnswers(): Promise<VoiceAnswer[]> {
+  return request<VoiceAnswer[]>("/voice-answers/GetAll");
+}
+
+/**
+ * Stores the spoken answer to one chosen prompt, replacing any earlier one. The prompt must already
+ * be in the saved prompt list — save the list first.
+ */
+export async function uploadVoiceAnswer(promptId: string, uri: string): Promise<VoiceAnswer> {
+  const form = new FormData();
+  // Phones record AAC in an .m4a file; a browser recording arrives as a WebM blob and keeps its own type.
+  await appendFile(form, "audio", uri, "audio/mp4", `voice_${promptId}.m4a`);
+  form.append("promptId", promptId);
+  return request<VoiceAnswer>("/voice-answers/Upload", {
+    method: "POST",
+    body: form,
+    timeoutMs: UPLOAD_TIMEOUT_MS,
+  });
+}
+
+export function deleteVoiceAnswer(promptId: string): Promise<void> {
+  return request<void>(`/voice-answers/${encodeURIComponent(promptId)}`, { method: "DELETE" });
 }

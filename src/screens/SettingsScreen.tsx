@@ -1,4 +1,6 @@
-﻿import { useState, useSyncExternalStore } from "react";
+﻿import { useEffect, useState, useSyncExternalStore } from "react";
+import { getMySettings, updateMySettings, type MemberSettingsChange } from "../api/members";
+import { getSession } from "../auth/session";
 import { Pressable, ScrollView, StyleSheet, Switch, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
@@ -46,10 +48,48 @@ export function SettingsScreen({ navigation }: Props) {
   const scrollRef = useResetScrollOnFocus();
   const draft = useSyncExternalStore(subscribeProfileDraft, getProfileDraft);
   const age = ageFromBirth(draft.birth);
-  const [paused, setPaused] = useState(false);
-  const [letters, setLetters] = useState(draft.notificationsOn);
-  const [replies, setReplies] = useState(draft.notificationsOn);
+  const [switches, setSwitches] = useState({
+    introductionsPaused: false,
+    notifyIntroductions: draft.notificationsOn,
+    notifyReplies: draft.notificationsOn,
+    notifyWeekendSurprise: draft.notificationsOn,
+  });
+  const [saveError, setSaveError] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
+
+  // The server holds these; a switch that was never answered reads as off.
+  useEffect(() => {
+    if (!getSession()) return;
+    let cancelled = false;
+    void getMySettings()
+      .then((s) => {
+        if (cancelled) return;
+        setSwitches({
+          introductionsPaused: s.introductionsPaused,
+          notifyIntroductions: s.notifyIntroductions ?? false,
+          notifyReplies: s.notifyReplies ?? false,
+          notifyWeekendSurprise: s.notifyWeekendSurprise ?? false,
+        });
+      })
+      .catch(() => {
+        /* offline — the switches show what the member chose at registration */
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  /** Flips the switch at once and saves it; puts it back if the save fails. */
+  const toggle = (field: keyof typeof switches) => (next: boolean) => {
+    setSaveError(null);
+    setSwitches((s) => ({ ...s, [field]: next }));
+    if (!getSession()) return;
+    const change: MemberSettingsChange = { [field]: next };
+    void updateMySettings(change).catch(() => {
+      setSwitches((s) => ({ ...s, [field]: !next }));
+      setSaveError("That didn't save. Check your connection and try again.");
+    });
+  };
 
   const shown = [
     ...publishedVitals(draft.lifestyle, LIFESTYLE_QUESTIONS),
@@ -106,12 +146,12 @@ export function SettingsScreen({ navigation }: Props) {
             <ToggleRow
               label="Pause my introductions"
               hint={
-                paused
+                switches.introductionsPaused
                   ? "You're away. Nobody new will be shown your introduction."
                   : "Step away without losing anything you've written."
               }
-              value={paused}
-              onChange={setPaused}
+              value={switches.introductionsPaused}
+              onChange={toggle("introductionsPaused")}
             />
           </Group>
 
@@ -119,16 +159,27 @@ export function SettingsScreen({ navigation }: Props) {
             <ToggleRow
               label="A new introduction is ready"
               hint="One quiet note when your next letter arrives."
-              value={letters}
-              onChange={setLetters}
+              value={switches.notifyIntroductions}
+              onChange={toggle("notifyIntroductions")}
             />
             <ToggleRow
               label="Someone wrote back"
               hint="Only for people already in your correspondence."
-              value={replies}
-              onChange={setReplies}
+              value={switches.notifyReplies}
+              onChange={toggle("notifyReplies")}
+            />
+            <ToggleRow
+              label="Weekend Surprise opens"
+              hint="When a Saturday drop opens in your city."
+              value={switches.notifyWeekendSurprise}
+              onChange={toggle("notifyWeekendSurprise")}
             />
           </Group>
+          {saveError ? (
+            <AppText variant="meta" tone="rose" style={styles.trustCopy}>
+              {saveError}
+            </AppText>
+          ) : null}
 
           <Group title="Sign-in details">
             <LinkRow

@@ -3,6 +3,12 @@
  * its own visibility switch — answering is never the same as publishing.
  */
 
+/**
+ * An answer, not a visibility choice: it is stored as the member's answer and never published,
+ * so it carries no show/hide switch.
+ */
+export const PREFER_NOT_TO_SAY = "Prefer not to say";
+
 export type LifestyleQuestion = {
   id: string;
   question: string;

@@ -1,4 +1,5 @@
 import { request } from "./client";
+import type { MemberSettings } from "./members";
 import type {
   AuthAccount,
   Gender,
@@ -56,7 +57,7 @@ export type RegistrationPage = {
   name?: string;
   nickname?: string;
   gender?: Gender;
-  /** False is "prefer not to say" — hidden on the profile, still used for matching. */
+  /** False hides the gender on the profile; matching still uses it. */
   genderIsPublic?: boolean;
   /** ISO date, `YYYY-MM-DD`. */
   dateOfBirth?: string;
@@ -82,6 +83,14 @@ export type RegistrationPage = {
   beliefs?: Record<string, RegistrationAnswer>;
   /** Replaces the whole set, so deselecting a chip sticks. */
   vibe?: string[];
+  /** The full chosen list, in order; replaces what is stored. A recording is uploaded separately. */
+  prompts?: PromptAnswerPage[];
+  /** Empty clears it. */
+  dealbreaker?: string;
+  /** Keyed by question (socialEnergy, weekends, family); replaces what is stored. */
+  rhythm?: Record<string, string>;
+  /** The notifications page: yes or not now. */
+  notificationsOn?: boolean;
 };
 
 /** What is still only in the server-side draft; a group leaves once promoted to its own table. */
@@ -117,6 +126,21 @@ export type MemberProfileAnswers = {
   lifestyle: Record<string, RegistrationAnswer>;
   beliefs: Record<string, RegistrationAnswer>;
   vibe: string[];
+  prompts: PromptAnswer[];
+  dealbreaker: string | null;
+  rhythm: Record<string, string>;
+};
+
+export type PromptAnswerPage = {
+  promptId: string;
+  text?: string;
+};
+
+export type PromptAnswer = {
+  promptId: string;
+  text: string | null;
+  /** A spoken answer is stored; its playback link comes from `voice-answers/GetAll`. */
+  hasAudio: boolean;
 };
 
 /**
@@ -130,6 +154,8 @@ export type RegistrationProgress = {
   profile: MemberProfile | null;
   preferences: MemberPreferences | null;
   profileAnswers: MemberProfileAnswers | null;
+  /** Notification switches, pause and field visibility — null until any was set. */
+  settings: MemberSettings | null;
 };
 
 /** Everything answered so far, for prefilling and reopening the flow where it stopped. */

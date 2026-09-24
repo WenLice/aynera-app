@@ -9,10 +9,10 @@ export type ApiResponse<T> = {
 };
 
 /**
- * The API's `Gender` enum, by name. `ThirdGender` is stored exactly as it is shown;
- * `PreferNotToSay` is an explicit decline, deliberately distinct from it.
+ * The genders a member can state, by the API's names. `ThirdGender` is shown as
+ * "Third Gender / Transgender". Whether it appears on the profile is `genderIsPublic`.
  */
-export type Gender = "Male" | "Female" | "ThirdGender" | "PreferNotToSay";
+export type Gender = "Male" | "Female" | "ThirdGender";
 
 /** Who the member wants to meet. `Everyone` is all three genders. */
 export type InterestedIn = "Male" | "Female" | "ThirdGender" | "Everyone";

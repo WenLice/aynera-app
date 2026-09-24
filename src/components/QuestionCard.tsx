@@ -3,6 +3,7 @@ import { AppText } from "./AppText";
 import { VisibilityToggle } from "./VisibilityToggle";
 import { colors, elevation, radius, spacing } from "../theme";
 import { selectTap } from "../utils/feedback";
+import { PREFER_NOT_TO_SAY } from "../data/lifestyleOptions";
 
 type Props = {
   question: string;
@@ -71,7 +72,10 @@ export function QuestionCard({
         })}
       </View>
 
-      <VisibilityToggle visible={visible} onChange={onChangeVisible} />
+      {/* "Prefer not to say" is never published, so there is nothing to show or hide. */}
+      {value === PREFER_NOT_TO_SAY ? null : (
+        <VisibilityToggle visible={visible} onChange={onChangeVisible} />
+      )}
     </View>
   );
 }

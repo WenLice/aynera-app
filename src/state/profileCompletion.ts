@@ -1,3 +1,4 @@
+import { PREFER_NOT_TO_SAY } from "../data/lifestyleOptions";
 import {
   OPTIONAL_PROMPT_MAX,
   REQUIRED_PROMPTS,
@@ -24,7 +25,7 @@ export type ProfileCompletion = {
 
 const answeredCount = (map: ProfileDraft["lifestyle"]) =>
   Object.values(map ?? {}).filter(
-    (a) => !!a.value && a.value !== "Prefer not to say",
+    (a) => !!a.value && a.value !== PREFER_NOT_TO_SAY,
   ).length;
 
 export function profileCompletion(draft: ProfileDraft): ProfileCompletion {

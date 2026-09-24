@@ -1,3 +1,4 @@
+import { PREFER_NOT_TO_SAY } from "../data/lifestyleOptions";
 import type { Gender } from "../api/types";
 import type {
   IntentOutcome,
@@ -37,7 +38,12 @@ export type VideoSlot = {
 export type PromptAnswer = {
   promptId: string;
   promptText: string;
+  /** The typed answer. A prompt counts as answered by this, by a recording, or both. */
   answer: string;
+  /** The spoken answer: a local recording not yet sent, or the signed link to the stored one. */
+  audioUri?: string | null;
+  /** What the server holds, so leaving the step only uploads a new take or deletes a removed one. */
+  savedAudioUri?: string | null;
 };
 
 export type BirthDate = {
@@ -58,9 +64,8 @@ export type IntroStyle = "initial" | "nickname";
 export type GenderChoice = "" | Gender;
 
 /**
- * `Other` is the API's code for third gender / transgender. "Prefer not to say" is not
- * a gender here — it is `genderIsPublic: false`, which hides the answer without taking
- * the member out of matching.
+ * Every member picks one of these. Whether it shows on the profile is a separate switch
+ * (`genderIsPublic`); hiding it never takes the member out of matching.
  */
 export const GENDER_OPTIONS: { value: Exclude<GenderChoice, "">; label: string }[] = [
   { value: "Male", label: "Male" },
@@ -79,7 +84,7 @@ export type ProfileDraft = {
   nickname: string;
   /** How the member describes themselves. Sent to the API; separate from `lookingFor`. */
   gender: GenderChoice;
-  /** False is "prefer not to say" — hidden on the profile, still used for matching. */
+  /** False hides the gender on the profile; matching still uses it. */
   genderIsPublic: boolean;
   birth: BirthDate;
   city: LaunchCity | "";
@@ -247,7 +252,7 @@ export function publishedVitals(
 ) {
   return questions
     .map((q) => ({ label: q.vital, ...optionalAnswer(map, q.id) }))
-    .filter((a) => a.visible && !!a.value && a.value !== "Prefer not to say")
+    .filter((a) => a.visible && !!a.value && a.value !== PREFER_NOT_TO_SAY)
     .map((a) => ({ label: a.label, value: a.value }));
 }
 
